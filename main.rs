@@ -1,21 +1,9 @@
 use std::io::{stdin,stdout,Write};
 use std::fs::File;
+use std::backtrace::Backtrace;
 // use std::io::prelude::*;
 
 fn test() {
-    let mut board: [[i8; 9]; 9] = [[2, -2, 0, 2, 2, -1, 0, 1, 0, ],
-				   [1, 1, 1, 2, -1, 2, -2, 1, 0, ],
-				   [2, -2, 0, -1, -2, 2, 0, 1, 0, ],
-				   [-1, -1, -1, -1, 1, -1, -1, -1, 0, ],
-				   [1, 2, -1, -1, 1, 0, 1, 0, 1, ],
-				   [2, 1, 2, -1, 0, 0, -1, 0, 0, ],
-				   [-1, 1, 2, -1, -1, 0, 0, -1, 0, ],
-				   [-1, 0, 0, -1, 0, -1, -1, 0, 0, ],
-				   [-1, 1, 0, 1, 1, 0, 0, 0, 0, ],
-    ];
-    println!("Rating: {}", rate_board(board));
-    place(&mut board, 1, 6, 4);
-    print_board(board);
 }
 
 fn write_board(board: [[i8; 9]; 9], outfile: &mut File) {
@@ -168,6 +156,7 @@ fn place(board: &mut [[i8; 9]; 9], player: i8, scope: i8, p: i8) {
     let cu: usize = c as usize;
     if ru > 8 {
 	println!("ru: {}, r: {}, scope: {}, p_round: {}, p: {}", ru, r, scope_round, p_round, p);
+	print!("\n\n{}", Backtrace::capture());
     }
     if cu > 8 {
 	println!("cu: {}, c: {}, scope: {}, p: {}", cu, c, scope, p);
@@ -597,16 +586,18 @@ fn possible_moves(board: [[i8; 3]; 3]) -> i32 {
 }
 
 fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
-    if ahead == 3 {
-	// println!("AHEAD: {}, RATING: {}", ahead, rate_board(board));
-	// print_board(board);
-	return rate_board(board);
-    }
-    else if rate_board(board) < -30 {
-	return rate_board(board);
-    }
-    else if possible_moves(get_slice(board, scope)) > 5 && ahead > 1 {
-	return rate_board(board);
+    if ahead != 0 {
+	if ahead == 3 {
+	    // println!("AHEAD: {}, RATING: {}", ahead, rate_board(board));
+	    // print_board(board);
+	    return rate_board(board);
+	}
+	else if rate_board(board) < -30 {
+	    return rate_board(board);
+	}
+	else if possible_moves(get_slice(board, scope)) > 5 && ahead > 1 {
+	    return rate_board(board);
+	}
     }
     if is_full(get_slice(board, scope)) {
 	let mut ratings: [i32; 81] = [10000; 81];
@@ -616,6 +607,9 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 		    let p: i8 = 3*row + col;
 		    if get(board, nscope, p) == 0 {
 			let mut cp_board = board.clone();
+			if p < 0 {
+			    print!("p2: {}", p);
+			}
 			place(&mut cp_board, -1, nscope, p);
 			// opponent's move
 			let mut oratings: [i32; 9] = [-10000; 9];
@@ -624,6 +618,9 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 				let op: i8 = 3*orow + ocol;
 				if get(cp_board, p, op) == 0 {
 				    let mut cp2_board = cp_board.clone();
+				    if op < 0 {
+					print!("op: {}", op);
+				    }
 				    place(&mut cp2_board, 1, p, op);
 				    oratings[(3 * orow + ocol) as usize] = cpturn(ahead + 1, cp2_board, 3 * orow + ocol);
 				}
@@ -669,6 +666,9 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 		let p: i8 = 3*row + col;
 		if get(board, scope, p) == 0 {
 		    let mut cp_board = board.clone();
+		    if p < 0 {
+			print!("p2: {}", p);
+		    }
 		    place(&mut cp_board, -1, scope, p);
 		    // opponent's move
 		    let mut oratings: [i32; 9] = [-10000; 9];
@@ -677,6 +677,9 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 			    let op: i8 = 3*orow + ocol;
 			    if get(cp_board, p, op) == 0 {
 				let mut cp2_board = cp_board.clone();
+				if op < 0 {
+				    print!("op2: {}", op);
+				}
 				place(&mut cp2_board, 1, p, op);
 				oratings[(3 * orow + ocol) as usize] = cpturn(ahead + 1, cp2_board, 3 * orow + ocol);
 			    }

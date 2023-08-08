@@ -70,8 +70,9 @@ fn main() {
 		let p: i8;
 		if is_full(get_slice(board, scope)) {
 		    let enc = cpturn(0, board, scope);
+		    // print!("enc: {}", enc);
 		    scope = (enc as i32 / 10) as i8;
-		    p = (enc as i32 - ((scope * 10) as i32)) as i8;
+		    p = (enc as i32 - scope as i32 * 10) as i8;
 		}
 		else {
 		    p = cpturn(0, board, scope) as i8;
@@ -753,8 +754,9 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> f32 {
 		}
 	    }
 	    // combine scope and p value
-	    let nscope = (min_index / 9) as i8;
-	    let p_val = (min_index - nscope as usize) as i8;
+	    let nscope = (min_index / 9) as i32;
+	    let p_val = (min_index - nscope as usize * 9) as i32;
+	    // println!("min index: {}, nscope: {}, p val: {}", min_index, nscope, p_val);
 	    return (nscope * 10 + p_val) as f32;
 	}
 	else {

@@ -65,7 +65,6 @@ fn main() {
 		    player *= -1;
 		    scope = p;
 		}
-		print!("Finished your turn! Time for the computer!");
 	    }
 	    else {
 		let p: i8;
@@ -77,7 +76,6 @@ fn main() {
 		else {
 		    p = cpturn(0, board, scope) as i8;
 		}
-		print!("Computer done thinking! Time to place!");
 		place(&mut board, player, scope, p);
 		player *= -1;
 		scope = p;
@@ -154,13 +152,6 @@ fn place(board: &mut [[i8; 9]; 9], player: i8, scope: i8, p: i8) {
     let slice = get_slice(*board, scope);
     let ru: usize = r as usize;
     let cu: usize = c as usize;
-    if ru > 8 {
-	println!("ru: {}, r: {}, scope: {}, p_round: {}, p: {}", ru, r, scope_round, p_round, p);
-	print!("\n\n{}", Backtrace::capture());
-    }
-    if cu > 8 {
-	println!("cu: {}, c: {}, scope: {}, p: {}", cu, c, scope, p);
-    }
     if small_winner(slice) == 0 {
 	board[ru][cu] = player;
     }
@@ -494,12 +485,7 @@ fn rate_board(board: [[i8; 9]; 9]) -> i32 {
 	}
     }
     let overall_rating = rate_small(ratings);
-    if overall_rating < 0 {
-	total -= overall_rating * overall_rating;
-    }
-    else {
-	total += overall_rating * overall_rating;
-    }
+    total += overall_rating * 10;
     return total;
 }
 
@@ -607,9 +593,6 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 		    let p: i8 = 3*row + col;
 		    if get(board, nscope, p) == 0 {
 			let mut cp_board = board.clone();
-			if p < 0 {
-			    print!("p2: {}", p);
-			}
 			place(&mut cp_board, -1, nscope, p);
 			// opponent's move
 			let mut oratings: [i32; 9] = [-10000; 9];
@@ -618,9 +601,7 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 				let op: i8 = 3*orow + ocol;
 				if get(cp_board, p, op) == 0 {
 				    let mut cp2_board = cp_board.clone();
-				    if op < 0 {
-					print!("op: {}", op);
-				    }
+
 				    place(&mut cp2_board, 1, p, op);
 				    oratings[(3 * orow + ocol) as usize] = cpturn(ahead + 1, cp2_board, 3 * orow + ocol);
 				}
@@ -666,9 +647,6 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 		let p: i8 = 3*row + col;
 		if get(board, scope, p) == 0 {
 		    let mut cp_board = board.clone();
-		    if p < 0 {
-			print!("p2: {}", p);
-		    }
 		    place(&mut cp_board, -1, scope, p);
 		    // opponent's move
 		    let mut oratings: [i32; 9] = [-10000; 9];
@@ -677,9 +655,6 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 			    let op: i8 = 3*orow + ocol;
 			    if get(cp_board, p, op) == 0 {
 				let mut cp2_board = cp_board.clone();
-				if op < 0 {
-				    print!("op2: {}", op);
-				}
 				place(&mut cp2_board, 1, p, op);
 				oratings[(3 * orow + ocol) as usize] = cpturn(ahead + 1, cp2_board, 3 * orow + ocol);
 			    }
@@ -711,7 +686,6 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 	    // if ahead == 0 {
 	    //   println!();
 	    // }
-	    print!("Returning {}", min_index);
 	    return min_index;
 	}
 	else {

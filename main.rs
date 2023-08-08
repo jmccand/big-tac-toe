@@ -70,8 +70,8 @@ fn main() {
 		let p: i8;
 		if is_full(get_slice(board, scope)) {
 		    let enc = cpturn(0, board, scope);
-		    scope = (enc / 10) as i8;
-		    p = (enc - ((scope * 10) as i32)) as i8;
+		    scope = (enc as i32 / 10) as i8;
+		    p = (enc as i32 - ((scope * 10) as i32)) as i8;
 		}
 		else {
 		    p = cpturn(0, board, scope) as i8;
@@ -474,18 +474,20 @@ fn small_winner(board: [[i8; 3]; 3]) -> i8 {
 //   }
 // }
 
-fn rate_board(board: [[i8; 9]; 9]) -> i32 {
-    let mut total = 0;
-    let mut ratings: [[i8; 3]; 3] = [[0; 3]; 3];
+fn rate_board(board: [[i8; 9]; 9]) -> f32 {
+    let mut total = 0.0;
+    let mut ratings: [[i32; 3]; 3] = [[0; 3]; 3];
+    let mut winners: [[i8; 3]; 3] = [[0; 3]; 3];
     for b_row in 0..3 {
 	for b_col in 0..3 {
 	    let slice = get_slice(board, (3*b_row + b_col) as i8);
-	    ratings[b_row][b_col] = small_winner(slice);
-	    total += rate_small(slice);
+	    ratings[b_row][b_col] = rate_small(slice);
+	    winners[b_row][b_col] = small_winner(slice);
+	    total += rate_small(slice) as f32;
 	}
     }
-    let overall_rating = rate_small(ratings);
-    total += overall_rating * 10;
+    let overall_rating = rate_ratings(winners, ratings);
+    total += overall_rating * 12.0;
     return total;
 }
 
@@ -559,6 +561,131 @@ fn rate_small(board: [[i8; 3]; 3]) -> i32 {
     return total;
 }
 
+fn rate_ratings(winners: [[i8; 3]; 3], ratings: [[i32; 3]; 3]) -> f32 {
+    let mut total: f32 = 0.0;
+    // check rows
+    for row in 0..3 {
+	let mut counts = [0.0; 2];
+	for col in 0..3 {
+	    if winners[row][col] > 0 {
+		counts[0] += 1.0;
+	    }
+	    else if winners[row][col] < 0 {
+		counts[1] -= -1.0;
+	    }
+	    else if ratings[row][col] > 0 {
+		if ratings[row][col] >= 9 {
+		    counts[0] += 1.0;
+		}
+		else {
+		    counts[0] += ratings[row][col] as f32 / 9.0;
+		}
+	    }
+	    else if ratings[row][col] < 0 {
+		if ratings[row][col] <= -9 {
+		    counts[1] -= -1.0;
+		}
+		else {
+		    counts[1] -= ratings[row][col] as f32 / 9.0;
+		}
+	    }
+	}
+	total += counts[0] * counts[0];
+	total -= counts[1] * counts[1];
+    }
+    // check cols
+    for col in 0..3 {
+	let mut counts = [0.0; 2];
+	for row in 0..3 {
+	    if winners[row][col] > 0 {
+		counts[0] += 1.0;
+	    }
+	    else if winners[row][col] < 0 {
+		counts[1] -= -1.0;
+	    }
+	    else if ratings[row][col] > 0 {
+		if ratings[row][col] >= 9 {
+		    counts[0] += 1.0;
+		}
+		else {
+		    counts[0] += ratings[row][col] as f32 / 9.0;
+		}
+	    }
+	    else if ratings[row][col] < 0 {
+		if ratings[row][col] <= -9 {
+		    counts[1] -= -1.0;
+		}
+		else {
+		    counts[1] -= ratings[row][col] as f32 / 9.0;
+		}
+	    }
+	}
+	total += counts[0] * counts[0];
+	total -= counts[1] * counts[1];
+    }
+    // check diag
+    {
+	let mut counts = [0.0; 2];
+	for diag in 0..3 {
+	    if winners[diag][diag] > 0 {
+		counts[0] += 1.0;
+	    }
+	    else if winners[diag][diag] < 0 {
+		counts[1] -= -1.0;
+	    }
+	    else if ratings[diag][diag] > 0 {
+		if ratings[diag][diag] >= 9 {
+		    counts[0] += 1.0;
+		}
+		else {
+		    counts[0] += ratings[diag][diag] as f32 / 9.0;
+		}
+	    }
+	    else if ratings[diag][diag] < 0 {
+		if ratings[diag][diag] <= -9 {
+		    counts[1] -= -1.0;
+		}
+		else {
+		    counts[1] -= ratings[diag][diag] as f32 / 9.0;
+		}
+	    }
+	}
+	total += counts[0] * counts[0];
+	total -= counts[1] * counts[1];
+    }
+    // check diag
+    {
+	let mut counts = [0.0; 2];
+	for diag in 0..3 {
+	    if winners[diag][2 - diag] > 0 {
+		counts[0] += 1.0;
+	    }
+	    else if winners[diag][2 - diag] < 0 {
+		counts[1] -= -1.0;
+	    }
+	    else if ratings[diag][2 - diag] > 0 {
+		if ratings[diag][2 - diag] >= 9 {
+		    counts[0] += 1.0;
+		}
+		else {
+		    counts[0] += ratings[diag][2 - diag] as f32 / 9.0;
+		}
+	    }
+	    else if ratings[diag][2 - diag] < 0 {
+		if ratings[diag][2 - diag] <= -9 {
+		    counts[1] -= -1.0;
+		}
+		else {
+		    counts[1] -= ratings[diag][2 - diag] as f32 / 9.0;
+		}
+	    }
+	}
+	total += counts[0] * counts[0];
+	total -= counts[1] * counts[1];
+    }
+    return total;
+}
+
 fn possible_moves(board: [[i8; 3]; 3]) -> i32 {
     let mut possible: i32 = 0;
     for row in 0..3 {
@@ -571,14 +698,14 @@ fn possible_moves(board: [[i8; 3]; 3]) -> i32 {
     return possible;
 }
 
-fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
+fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> f32 {
     if ahead != 0 {
 	if ahead == 3 {
 	    // println!("AHEAD: {}, RATING: {}", ahead, rate_board(board));
 	    // print_board(board);
 	    return rate_board(board);
 	}
-	else if rate_board(board) < -30 {
+	else if rate_board(board) < -30.0 {
 	    return rate_board(board);
 	}
 	else if possible_moves(get_slice(board, scope)) > 5 && ahead > 1 {
@@ -586,7 +713,7 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 	}
     }
     if is_full(get_slice(board, scope)) {
-	let mut ratings: [i32; 81] = [10000; 81];
+	let mut ratings: [f32; 81] = [10000.0; 81];
 	for nscope in 0..9 {
 	    for row in 0..3 {
 		for col in 0..3 {
@@ -595,7 +722,7 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 			let mut cp_board = board.clone();
 			place(&mut cp_board, -1, nscope, p);
 			// opponent's move
-			let mut oratings: [i32; 9] = [-10000; 9];
+			let mut oratings: [f32; 9] = [-10000.0; 9];
 			for orow in 0..3 {
 			    for ocol in 0..3 {
 				let op: i8 = 3*orow + ocol;
@@ -607,7 +734,7 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 				}
 			    }
 			}
-			let mut omax = -10000;
+			let mut omax = -10000.0;
 			for owin in oratings {
 			    if owin > omax {
 				omax = owin;
@@ -628,20 +755,20 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 	    // combine scope and p value
 	    let nscope = (min_index / 9) as i8;
 	    let p_val = (min_index - nscope as usize) as i8;
-	    return (nscope * 10 + p_val) as i32;
+	    return (nscope * 10 + p_val) as f32;
 	}
 	else {
-	    let mut min_value = 10000;
+	    let mut min_value = 10000.0;
 	    for win_p in ratings {
 		if win_p < min_value {
 		    min_value = win_p;
 		}
 	    }
-	    return min_value;
+	    return min_value as f32;
 	}
     }
     else {
-	let mut ratings: [i32; 9] = [10000; 9];
+	let mut ratings: [f32; 9] = [10000.0; 9];
 	for row in 0..3 {
 	    for col in 0..3 {
 		let p: i8 = 3*row + col;
@@ -649,7 +776,7 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 		    let mut cp_board = board.clone();
 		    place(&mut cp_board, -1, scope, p);
 		    // opponent's move
-		    let mut oratings: [i32; 9] = [-10000; 9];
+		    let mut oratings: [f32; 9] = [-10000.0; 9];
 		    for orow in 0..3 {
 			for ocol in 0..3 {
 			    let op: i8 = 3*orow + ocol;
@@ -660,7 +787,7 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 			    }
 			}
 		    }
-		    let mut omax = -10000;
+		    let mut omax = -10000.0;
 		    for owin in oratings {
 			if owin > omax {
 			    omax = owin;
@@ -686,10 +813,10 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 	    // if ahead == 0 {
 	    //   println!();
 	    // }
-	    return min_index;
+	    return min_index as f32;
 	}
 	else {
-	    let mut min_value = 10000;
+	    let mut min_value = 10000.0;
 	    if ahead == 0 {
 		println!();
 	    }
@@ -704,7 +831,7 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> i32 {
 	    if ahead == 0 {
 		println!();
 	    }
-	    return min_value;
+	    return min_value as f32;
 	}
     }
 }

@@ -705,7 +705,7 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> f32 {
 fn cpstack(board: [[i8; 9]; 9], scope: i8) -> i8 {
     // each entry in tocheck should have the board, the player, the scope, the original move, ahead
     let mut tocheck: Vec<Case> = Vec::new();
-    let mut minratings: [f32; 9] = [-10000.0; 9];
+    let mut minratings: [f32; 9] = [10000.0; 9];
     #[derive(Copy, Clone)]
     struct Case {
 	b: [[i8; 9]; 9],
@@ -752,19 +752,19 @@ fn cpstack(board: [[i8; 9]; 9], scope: i8) -> i8 {
     while tocheck.len() > curin {
 	let wcase = tocheck[curin];
 	let rating = rate_board(wcase.b);
-	println!("tocheck length: {}", tocheck.len());
-	print_board(wcase.b);
+	// println!("tocheck length: {}", tocheck.len());
+	// print_board(wcase.b);
 	if rating < minratings[wcase.ogmove as usize] {
 	    minratings[wcase.ogmove as usize] = rating;
 	}
-	if wcase.ahead < 2 {
+	if wcase.ahead < 4 {
 	    tryall(&mut tocheck, &wcase);
 	}
 	curin += 1;
     }
     let mut maxindex: i8 = 0;
     for i in 1..9 {
-	if minratings[i] > minratings[maxindex as usize] {
+	if minratings[i] > minratings[maxindex as usize] && minratings[i] != 10000.0{
 	    maxindex = i as i8;
 	}
     }

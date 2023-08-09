@@ -1,6 +1,7 @@
 use std::io::{stdin,stdout,Write};
 use std::fs::File;
 use std::backtrace::Backtrace;
+use std::vec::Vec;
 // use std::io::prelude::*;
 
 fn test() {
@@ -699,6 +700,58 @@ fn cpturn(ahead: i32, board: [[i8; 9]; 9], scope: i8) -> f32 {
 	    return min_value as f32;
 	}
     }
+}
+
+fn cpstack(board: [[i8; 9]; 9], scope: i8) -> i8 {
+    // each entry in tocheck should have the board, the player, the scope, the original move, ahead
+    let mut tocheck: Vec<Case> = Vec::new();
+    let mut minratings: [f32; 9] = [-10000.0; 9];
+    struct Case {
+	b: [[i8; 9]; 9],
+	pl: i8,
+	s: i8,
+	ogmove: i8,
+	ahead: i8,
+    }
+    fn tryall(v: &mut Vec<Case>, bo: &mut [[i8; 9]; 9], sc: i8, player: i8, a: i8) {
+	let myslice = get_slice(*bo, sc);
+	for row in 0..3 {
+	    for col in 0..3 {
+		if myslice[row][col] == 0 {
+		    let p: i8 = (row * 3 + col) as i8;
+		    let mut nbo = bo.clone();
+		    place(&mut nbo, player, sc, p);
+		    let thischeck = Case {
+			b: nbo,
+			pl: player * -1,
+			s: p,
+			ogmove: p,
+			ahead: a + 1,
+		    };
+		    v.extend([thischeck]);
+		}
+	    }
+	}
+    }
+    tryall(&mut tocheck, &mut board.clone(), scope, -1, 0);
+    while tocheck.len() > 0 {
+	let wcase = &mut tocheck[0];
+	let rating = rate_board(wcase.b);
+	if rating < minratings[wcase.ogmove as usize] {
+	    minratings[wcase.ogmove as usize] = rating;
+	}
+	if wcase.ahead < 4 {
+	    tryall(&mut tocheck, &mut wcase.b, wcase.s, wcase.pl, wcase.ahead);
+	}
+	tocheck.pop();
+    }
+    let mut minindex: i8 = 0;
+    for i in 1..9 {
+	if minratings[i] < minratings[minindex as usize] {
+	    minindex = i as i8;
+	}
+    }
+    return minindex;
 }
 
 fn is_full(board: [[i8; 3]; 3]) -> bool {

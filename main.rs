@@ -76,7 +76,7 @@ fn main() {
 		    p = (enc as i32 - scope as i32 * 10) as i8;
 		}
 		else {
-		    p = cpturn(0, board, scope) as i8;
+		    p = cpstack(board, scope) as i8;
 		}
 		place(&mut board, player, scope, p);
 		player *= -1;
@@ -706,6 +706,7 @@ fn cpstack(board: [[i8; 9]; 9], scope: i8) -> i8 {
     // each entry in tocheck should have the board, the player, the scope, the original move, ahead
     let mut tocheck: Vec<Case> = Vec::new();
     let mut minratings: [f32; 9] = [-10000.0; 9];
+    #[derive(Copy, Clone)]
     struct Case {
 	b: [[i8; 9]; 9],
 	pl: i8,
@@ -713,45 +714,61 @@ fn cpstack(board: [[i8; 9]; 9], scope: i8) -> i8 {
 	ogmove: i8,
 	ahead: i8,
     }
-    fn tryall(v: &mut Vec<Case>, bo: &mut [[i8; 9]; 9], sc: i8, player: i8, a: i8) {
-	let myslice = get_slice(*bo, sc);
+    fn tryall(v: &mut Vec<Case>, c: &Case) {
+	let myslice = get_slice(c.b, c.s);
 	for row in 0..3 {
 	    for col in 0..3 {
 		if myslice[row][col] == 0 {
 		    let p: i8 = (row * 3 + col) as i8;
-		    let mut nbo = bo.clone();
-		    place(&mut nbo, player, sc, p);
-		    let thischeck = Case {
+		    let mut nbo = c.b.clone();
+		    place(&mut nbo, c.pl, c.s, p);
+		    let mut thischeck = Case {
 			b: nbo,
-			pl: player * -1,
+			pl: c.pl * -1,
 			s: p,
-			ogmove: p,
-			ahead: a + 1,
+			ahead: c.ahead + 1,
+			ogmove: -1,
 		    };
-		    v.extend([thischeck]);
+		    if c.ogmove == -1 {
+			thischeck.ogmove = p;
+		    }
+		    else {
+			thischeck.ogmove = c.ogmove;
+		    }
+		    v.push(thischeck);
 		}
 	    }
 	}
     }
-    tryall(&mut tocheck, &mut board.clone(), scope, -1, 0);
-    while tocheck.len() > 0 {
-	let wcase = &mut tocheck[0];
+    let starter = Case {
+	b: board,
+	pl: -1,
+	s: scope,
+	ogmove: -1,
+	ahead: 0,
+    };
+    tryall(&mut tocheck, &starter);
+    let mut curin = 0;
+    while tocheck.len() > curin {
+	let wcase = tocheck[curin];
 	let rating = rate_board(wcase.b);
+	println!("tocheck length: {}", tocheck.len());
+	print_board(wcase.b);
 	if rating < minratings[wcase.ogmove as usize] {
 	    minratings[wcase.ogmove as usize] = rating;
 	}
-	if wcase.ahead < 4 {
-	    tryall(&mut tocheck, &mut wcase.b, wcase.s, wcase.pl, wcase.ahead);
+	if wcase.ahead < 2 {
+	    tryall(&mut tocheck, &wcase);
 	}
-	tocheck.pop();
+	curin += 1;
     }
-    let mut minindex: i8 = 0;
+    let mut maxindex: i8 = 0;
     for i in 1..9 {
-	if minratings[i] < minratings[minindex as usize] {
-	    minindex = i as i8;
+	if minratings[i] > minratings[maxindex as usize] {
+	    maxindex = i as i8;
 	}
     }
-    return minindex;
+    return maxindex;
 }
 
 fn is_full(board: [[i8; 3]; 3]) -> bool {

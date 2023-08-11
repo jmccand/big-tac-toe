@@ -4,6 +4,7 @@ use std::backtrace::Backtrace;
 use std::vec::Vec;
 use std::thread;
 use std::time::Duration;
+use std::ptr;
 // use std::io::prelude::*;
 
 fn test() {
@@ -41,14 +42,22 @@ fn main() {
     let s = input();
     if s == "1" {
 	#[derive(Copy, Clone)]
-	struct Board {
+	struct Board<'a> {
 	    brd: [[i8; 9]; 9],
 	    scope: u8,
 	    player: i8,
 	    movenum: u8,
-	    children: [&Board; 9],
-	    parent: &Board,
+	    children: [&'a Board<'a>; 9],
+	    parent: &'a Board<'a>,
 	}
+	let starter = Board {
+	    brd: [[0; 9]; 9],
+	    scope: 4,
+	    player: 1,
+	    movenum: 0,
+	    children: [ptr::null() as &Board; 9],
+	    parent: ptr::null() as &Board,
+	};
 	thread::spawn(|| {
 	    let mut tocheck: Vec<Board> = Vec::new();
 	    let tryall = |b: &mut Board| {
@@ -62,63 +71,62 @@ fn main() {
 				scope: p,
 				player: b.player * -1,
 				movenum: b.movenum + 1,
-				children: [ptr::null(); 9],
-				parent: b,
-			    }
+				children: [ptr::null() as &Board; 9],
+				parent: &b,
+			    };
 			    place(&mut newbrd.brd, b.player, b.scope, p);
 			    tocheck.push(newbrd);
 			}
 		    }
 		}
+	    };
+	    tryall(&mut starter);
+	    let mut curin = 0;
+	    while tocheck.len() > curin {
+		let thisbrd = tocheck[curin];
+		tryall(&mut thisbrd);
+		curin += 1;
 	    }
 	});
-	let mut board: [[i8; 9]; 9] = [[0; 9]; 9];
-	let mut scope = 4;
-	let mut player = 1;
+	let mut truebrd: [[i8; 9]; 9] = [[0; 9]; 9];
+	let mut truescope = 4;
+	let mut trueplayer = 1;
 	println!("Welcome to 1 player Big Tac Toe!");
-	while winner(board) == 0 {
-	    write_board(board, &mut game_history);
-	    if player == 1 {
+	while winner(truebrd) == 0 {
+	    write_board(truebrd, &mut game_history);
+	    if trueplayer == 1 {
 		// println!("Board rating: {}", rate_board(board));
-		print_board(board);
-		if is_full(get_slice(board, scope)) {
-		    print!("You are on board number {}, but because it is full you can go anywhere you'd like. Please enter a number, 0-8 (inclusive) for where you want to set the scope (which quadrant): ", scope);
+		print_board(truebrd);
+		if is_full(get_slice(truebrd, truescope)) {
+		    print!("You are on board number {}, but because it is full you can go anywhere you'd like. Please enter a number, 0-8 (inclusive) for where you want to set the scope (which quadrant): ", truescope);
 		    let nscope = input();
 		    let intscope = nscope.parse::<i8>().unwrap();
 		    if intscope >= 0 && intscope < 9 {
-			scope = intscope;
+			truescope = intscope;
 		    }
 		    else {
 			continue;
 		    }
 		}
-		print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", scope);
+		print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", truescope);
 		let s = input();
-		let p = s.parse::<i8>().unwrap();
-		if p >= 0 && p < 9 && get(board, scope, p) == 0 {
-		    place(&mut board, player, scope, p);
-		    player *= -1;
-		    scope = p;
+		let truep = s.parse::<i8>().unwrap();
+		if truep >= 0 && truep < 9 && get(truebrd, truescope, truep) == 0 {
+		    place(&mut truebrd, trueplayer, truescope, truep);
+		    trueplayer *= -1;
+		    truescope = truep;
 		}
 	    }
 	    else {
-		let p: i8;
-		if is_full(get_slice(board, scope)) {
-		    let enc = cpturn(0, board, scope);
-		    // print!("enc: {}", enc);
-		    scope = (enc as i32 / 10) as i8;
-		    p = (enc as i32 - scope as i32 * 10) as i8;
-		}
-		else {
-		    p = cpstack(board, scope) as i8;
-		}
-		place(&mut board, player, scope, p);
-		player *= -1;
-		scope = p;
+		let truep: i8 = 0;
+		// truep = getcpmove(trueboard, truescope) as i8;
+		place(&mut truebrd, trueplayer, truescope, truep);
+		trueplayer *= -1;
+		truescope = truep;
 	    }
 	}
-	print_board(board);
-	if winner(board) == 1 {
+	print_board(truebrd);
+	if winner(truebrd) == 1 {
 	    print!("You ");
 	}
 	else {

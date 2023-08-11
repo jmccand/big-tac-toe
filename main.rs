@@ -65,7 +65,7 @@ fn main() {
 		for row in 0..3 {
 		    for col in 0..3 {
 			if myslice[row][col] == 0 {
-			    let p: u8 = (row * 3 + col) as i8;
+			    let p: u8 = (row * 3 + col) as u8;
 			    let mut newbrd = Board {
 				brd: b.brd.clone(),
 				scope: p,
@@ -100,7 +100,7 @@ fn main() {
 		if is_full(get_slice(truebrd, truescope)) {
 		    print!("You are on board number {}, but because it is full you can go anywhere you'd like. Please enter a number, 0-8 (inclusive) for where you want to set the scope (which quadrant): ", truescope);
 		    let nscope = input();
-		    let intscope = nscope.parse::<i8>().unwrap();
+		    let intscope = nscope.parse::<u8>().unwrap();
 		    if intscope >= 0 && intscope < 9 {
 			truescope = intscope;
 		    }
@@ -110,7 +110,7 @@ fn main() {
 		}
 		print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", truescope);
 		let s = input();
-		let truep = s.parse::<i8>().unwrap();
+		let truep = s.parse::<u8>().unwrap();
 		if truep >= 0 && truep < 9 && get(truebrd, truescope, truep) == 0 {
 		    place(&mut truebrd, trueplayer, truescope, truep);
 		    trueplayer *= -1;
@@ -118,7 +118,7 @@ fn main() {
 		}
 	    }
 	    else {
-		let truep: i8 = 0;
+		let truep: u8 = 0;
 		// truep = getcpmove(trueboard, truescope) as i8;
 		place(&mut truebrd, trueplayer, truescope, truep);
 		trueplayer *= -1;
@@ -155,7 +155,7 @@ fn main() {
 		print!("O: ");
 	    }
 	    let s = input();
-	    let p = s.parse::<i8>().unwrap();
+	    let p = s.parse::<u8>().unwrap();
 	    if p >= 0 && p < 9 {
 		place(&mut board, player, scope, p);
 		player *= -1;
@@ -186,13 +186,12 @@ fn input() -> String {
     return s;
 }
 
-fn place(board: &mut [[i8; 9]; 9], player: i8, scope: i8, p: i8) {
-    let mut p_round: i8 = p / 3;
-    p_round = p_round as i8;
-    let mut scope_round: i8 = scope / 3;
+fn place(board: &mut [[i8; 9]; 9], player: i8, scope: u8, p: u8) {
+    let mut p_round: u8 = p / 3;
+    let mut scope_round: u8 = scope / 3;
     scope_round *= 3;
-    let r: i8 = scope_round + p_round;
-    let c: i8 = 3 * (scope % 3) + (p % 3);
+    let r: u8 = scope_round + p_round;
+    let c: u8 = 3 * (scope % 3) + (p % 3);
     let slice = get_slice(*board, scope);
     let ru: usize = r as usize;
     let cu: usize = c as usize;
@@ -204,22 +203,20 @@ fn place(board: &mut [[i8; 9]; 9], player: i8, scope: i8, p: i8) {
     }
 }
 
-fn get(board: [[i8; 9]; 9], scope: i8, p: i8) -> i8 {
-    let mut p_round: i8 = p / 3;
-    p_round = p_round as i8;
-    let mut scope_round = scope / 3;
-    scope_round = scope_round as i8;
+fn get(board: [[i8; 9]; 9], scope: u8, p: u8) -> i8 {
+    let mut p_round: u8 = p / 3;
+    let mut scope_round: u8 = scope / 3;
     scope_round *= 3;
-    let r: i8 = scope_round + p_round;
-    let c: i8 = 3 * (scope % 3) + (p % 3);
+    let r: u8 = scope_round + p_round;
+    let c: u8 = 3 * (scope % 3) + (p % 3);
     return board[r as usize][c as usize];
 }
 
-fn get_slice(board: [[i8; 9]; 9], scope: i8) -> [[i8; 3]; 3] {
+fn get_slice(board: [[i8; 9]; 9], scope: u8) -> [[i8; 3]; 3] {
     let mut slice = [[0; 3]; 3];
     for row in 0..3 {
 	for col in 0..3 {
-	    slice[row][col] = get(board, scope, (3*row + col) as i8);
+	    slice[row][col] = get(board, scope, (3*row + col) as u8);
 	}
     }
     return slice;
@@ -235,7 +232,7 @@ fn print_board(board: [[i8; 9]; 9]) {
 	    if col % 3 == 0 && col != 0 {
 		print!(" |")
 	    }
-	    let scope: i8 = ((row / 3) as i8) * 3 + (col / 3) as i8;
+	    let scope: u8 = ((row / 3) as u8) * 3 + (col / 3) as u8;
 	    let b_winner = small_winner(get_slice(board, scope));
 	    let value = board[row][col];
 	    if b_winner == 0 {
@@ -264,7 +261,7 @@ fn print_board(board: [[i8; 9]; 9]) {
 		    }
 		}
 		else {
-		    if board[(((row / 3) as i8) * 3 + 1) as usize][(((col / 3) as i8) * 3 + 1) as usize] == 0 {
+		    if board[(((row / 3) as u8) * 3 + 1) as usize][(((col / 3) as u8) * 3 + 1) as usize] == 0 {
 			if value == 0 {
 			    print!(" _");
 			}
@@ -297,7 +294,7 @@ fn winner(board: [[i8; 9]; 9]) -> i8 {
     let mut winners: [[i8; 3]; 3] = [[0; 3]; 3];
     for b_row in 0..3 {
 	for b_col in 0..3 {
-	    let slice = get_slice(board, (b_row*3 + b_col) as i8);
+	    let slice = get_slice(board, (b_row*3 + b_col) as u8);
 	    winners[b_row][b_col] = small_winner(slice);
 	}
     }
@@ -387,7 +384,7 @@ fn rate_board(board: [[i8; 9]; 9]) -> f32 {
     let mut winners: [[i8; 3]; 3] = [[0; 3]; 3];
     for b_row in 0..3 {
 	for b_col in 0..3 {
-	    let slice = get_slice(board, (3*b_row + b_col) as i8);
+	    let slice = get_slice(board, (3*b_row + b_col) as u8);
 	    ratings[b_row][b_col] = rate_small(slice);
 	    winners[b_row][b_col] = small_winner(slice);
 	    total += rate_small(slice) as f32;
@@ -603,78 +600,6 @@ fn possible_moves(board: [[i8; 3]; 3]) -> i32 {
 	}
     }
     return possible;
-}
-
-fn cpstack(board: [[i8; 9]; 9], scope: i8) -> i8 {
-    // each entry in tocheck should have the board, the player, the scope, the original move, ahead
-    let mut tocheck: Vec<Case> = Vec::new();
-    let mut minratings: [f32; 9] = [10000.0; 9];
-    #[derive(Copy, Clone)]
-    struct Case {
-	b: [[i8; 9]; 9],
-	pl: i8,
-	s: i8,
-	ogmove: i8,
-	ahead: i8,
-    }
-    fn tryall(v: &mut Vec<Case>, c: &Case) {
-	let myslice = get_slice(c.b, c.s);
-	for row in 0..3 {
-	    for col in 0..3 {
-		if myslice[row][col] == 0 {
-		    let p: i8 = (row * 3 + col) as i8;
-		    let mut nbo = c.b.clone();
-		    place(&mut nbo, c.pl, c.s, p);
-		    let mut thischeck = Case {
-			b: nbo,
-			pl: c.pl * -1,
-			s: p,
-			ahead: c.ahead + 1,
-			ogmove: -1,
-		    };
-		    if c.ogmove == -1 {
-			thischeck.ogmove = p;
-		    }
-		    else {
-			thischeck.ogmove = c.ogmove;
-		    }
-		    v.push(thischeck);
-		}
-	    }
-	}
-    }
-    let starter = Case {
-	b: board,
-	pl: -1,
-	s: scope,
-	ogmove: -1,
-	ahead: 0,
-    };
-    tryall(&mut tocheck, &starter);
-    let mut curin = 0;
-    while tocheck.len() > curin {
-	let wcase = tocheck[curin];
-	// println!("tocheck length: {}", tocheck.len());
-	// print_board(wcase.b);
-	if wcase.ahead < 6 {
-	    tryall(&mut tocheck, &wcase);
-	}
-	if wcase.ahead == 6 {
-	    let rating = rate_board(wcase.b);
-	    if rating < minratings[wcase.ogmove as usize] {
-		minratings[wcase.ogmove as usize] = rating;
-	    }
-	}
-	curin += 1;
-    }
-    let mut minindex: i8 = 0;
-    for i in 1..9 {
-	println!("{}: {}", i, minratings[i]);
-	if minratings[i] < minratings[minindex as usize] && minratings[i] != 10000.0 {
-	    minindex = i as i8;
-	}
-    }
-    return minindex;
 }
 
 fn is_full(board: [[i8; 3]; 3]) -> bool {

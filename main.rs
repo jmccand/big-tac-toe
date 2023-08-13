@@ -50,17 +50,17 @@ fn main() {
 	    children: [&'a Board<'a>; 9],
 	    parent: &'a Board<'a>,
 	}
-	let starter = Board {
+	/*let mut starter = Board {
 	    brd: [[0; 9]; 9],
 	    scope: 4,
 	    player: 1,
 	    movenum: 0,
-	    children: [ptr::null() as &Board; 9],
-	    parent: ptr::null() as &Board,
+	    children: [&*ptr::null() as &Board; 9],
+	    parent: &*ptr::null() as &Board,
 	};
 	thread::spawn(|| {
 	    let mut tocheck: Vec<Board> = Vec::new();
-	    let tryall = |b: &mut Board| {
+	    let mut tryall = |b: &mut Board| {
 		let myslice = get_slice(b.brd, b.scope);
 		for row in 0..3 {
 		    for col in 0..3 {
@@ -71,10 +71,11 @@ fn main() {
 				scope: p,
 				player: b.player * -1,
 				movenum: b.movenum + 1,
-				children: [ptr::null() as &Board; 9],
-				parent: &b,
+				children: [&*ptr::null() as &Board; 9],
+				parent: b,
 			    };
 			    place(&mut newbrd.brd, b.player, b.scope, p);
+			    b.children[p as usize] = &newbrd;
 			    tocheck.push(newbrd);
 			}
 		    }
@@ -83,11 +84,11 @@ fn main() {
 	    tryall(&mut starter);
 	    let mut curin = 0;
 	    while tocheck.len() > curin {
-		let thisbrd = tocheck[curin];
+		let mut thisbrd = tocheck[curin];
 		tryall(&mut thisbrd);
 		curin += 1;
 	    }
-	});
+	});*/
 	let mut truebrd: [[i8; 9]; 9] = [[0; 9]; 9];
 	let mut truescope = 4;
 	let mut trueplayer = 1;
@@ -187,7 +188,7 @@ fn input() -> String {
 }
 
 fn place(board: &mut [[i8; 9]; 9], player: i8, scope: u8, p: u8) {
-    let mut p_round: u8 = p / 3;
+    let p_round: u8 = p / 3;
     let mut scope_round: u8 = scope / 3;
     scope_round *= 3;
     let r: u8 = scope_round + p_round;
@@ -204,7 +205,7 @@ fn place(board: &mut [[i8; 9]; 9], player: i8, scope: u8, p: u8) {
 }
 
 fn get(board: [[i8; 9]; 9], scope: u8, p: u8) -> i8 {
-    let mut p_round: u8 = p / 3;
+    let p_round: u8 = p / 3;
     let mut scope_round: u8 = scope / 3;
     scope_round *= 3;
     let r: u8 = scope_round + p_round;

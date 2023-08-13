@@ -4,7 +4,6 @@ use std::backtrace::Backtrace;
 use std::vec::Vec;
 use std::thread;
 use std::time::Duration;
-use std::ptr;
 // use std::io::prelude::*;
 
 fn test() {
@@ -42,25 +41,27 @@ fn main() {
     let s = input();
     if s == "1" {
 	#[derive(Copy, Clone)]
-	struct Board<'a> {
+	struct Board {
 	    brd: [[i8; 9]; 9],
 	    scope: u8,
 	    player: i8,
 	    movenum: u8,
-	    children: [&'a Board<'a>; 9],
-	    parent: &'a Board<'a>,
+	    parent: Option<usize>,
+	    children: [Option<usize>; 9],
 	}
-	/*let mut starter = Board {
+	let mut starter = Board {
 	    brd: [[0; 9]; 9],
 	    scope: 4,
 	    player: 1,
 	    movenum: 0,
-	    children: [&*ptr::null() as &Board; 9],
-	    parent: &*ptr::null() as &Board,
+	    children: [None; 9],
+	    parent: None,
 	};
 	thread::spawn(|| {
-	    let mut tocheck: Vec<Board> = Vec::new();
-	    let mut tryall = |b: &mut Board| {
+	    let mut db: Vec<Board> = Vec::new();
+	    db.push(starter);
+	    let mut tryall = |index: usize| {
+		let b = db[index];
 		let myslice = get_slice(b.brd, b.scope);
 		for row in 0..3 {
 		    for col in 0..3 {
@@ -71,24 +72,25 @@ fn main() {
 				scope: p,
 				player: b.player * -1,
 				movenum: b.movenum + 1,
-				children: [&*ptr::null() as &Board; 9],
-				parent: b,
+				children: [None; 9],
+				parent: Some(index),
 			    };
 			    place(&mut newbrd.brd, b.player, b.scope, p);
-			    b.children[p as usize] = &newbrd;
-			    tocheck.push(newbrd);
+			    b.children[p as usize] = Some(db.len() as usize);
+			    db.push(newbrd);
 			}
 		    }
 		}
 	    };
-	    tryall(&mut starter);
 	    let mut curin = 0;
-	    while tocheck.len() > curin {
-		let mut thisbrd = tocheck[curin];
-		tryall(&mut thisbrd);
+	    loop {
+		tryall(curin);
 		curin += 1;
+		if db.len() <= curin {
+		    break;
+		}
 	    }
-	});*/
+	});
 	let mut truebrd: [[i8; 9]; 9] = [[0; 9]; 9];
 	let mut truescope = 4;
 	let mut trueplayer = 1;

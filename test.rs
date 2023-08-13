@@ -1,37 +1,49 @@
 use std::vec::Vec;
 
 fn main() {
-    let mut tocheck: Vec<Board> = Vec::new();
-    struct Board<'a> {
+    #[derive(Copy, Clone)]
+    struct Board {
 	brd: [[i8; 9]; 9],
 	scope: u8,
 	player: i8,
 	movenum: u8,
-	parent: Option<&'a Board<'a>>,
-	child: Option<&'a Board<'a>>,
-	// children: [Option<&'a Board<'a>>; 9],
+	parent: Option<usize>,
+	children: [Option<usize>; 9],
     }
     let mut starter = Board {
 	brd: [[0; 9]; 9],
 	scope: 4,
 	player: 1,
 	movenum: 0,
+	children: [None; 9],
 	parent: None,
-	child: None,
-	// children: [None; 9],
     };
-    let child = Board {
-	brd: starter.brd.clone(),
-	scope: 0,
-	player: -1,
-	movenum: 1,
-	parent: Some(&starter),
-	child: None,
-	// children: [None; 9],
+    let mut db: Vec<Board> = Vec::new();
+    db.push(starter);
+    let mut tryall = |index: usize| {
+	let mut b = db[index];
+	for row in 0..3 {
+	    for col in 0..3 {
+		let p: u8 = (row * 3 + col) as u8;
+		let mut newbrd = Board {
+		    brd: b.brd.clone(),
+		    scope: p,
+		    player: b.player * -1,
+		    movenum: b.movenum + 1,
+		    children: [None; 9],
+		    parent: Some(index),
+		};
+		b.children[p as usize] = Some(db.len() as usize);
+		db.push(newbrd);
+	    }
+	}
     };
-    starter.child = Some(&child);
-    // tocheck.push(child);
-    for entry in 0..3 {
-	println!("{}", tocheck[entry].movenum);
+    let mut curin = 0;
+    loop {
+	tryall(curin);
+	curin += 1;
+	if db.len() <= curin {
+	    break;
+	}
     }
 }

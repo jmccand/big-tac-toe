@@ -140,7 +140,7 @@ fn main() {
 	    }
 	    let s = input();
 	    let p = s.parse::<u8>().unwrap();
-	    if p >= 0 && p < 9 {
+	    if p < 9 {
 		place(&mut board, player, scope, p);
 		player *= -1;
 		scope = p;

@@ -49,7 +49,7 @@ fn main() {
 	    parent: Option<usize>,
 	    children: [Option<usize>; 9],
 	}
-	let mut db: Vec<Board> = Vec::new();
+	static mut DB: Vec<Board> = Vec::new();
 	// thread that builds the decision tree
 	thread::spawn(move || {
 	    let starter = Board {
@@ -60,7 +60,7 @@ fn main() {
 		children: [None; 9],
 		parent: None,
 	    };
-	    db.push(starter);
+	    unsafe {DB.push(starter);}
 	    fn tryall(database: &mut Vec<Board>, index: usize) {
 		let mut b = database[index];
 		let myslice = get_slice(b.brd, b.scope);
@@ -84,39 +84,39 @@ fn main() {
 		}
 	    }
 	    let mut curin = 0;
-	    while db.len() > curin {
-		tryall(&mut db, curin);
+	    while unsafe {DB.len()} > curin {
+		tryall(unsafe {&mut DB}, curin);
 		curin += 1;
 	    }
 	});
 	// thread that takes user input and gets best computer move
-	/* let mut curindex = 0;
+	let mut curindex = 0;
 	println!("Welcome to 1 player Big Tac Toe!");
-	while winner(db[curindex].brd) == 0 {
-	    let board = db[curindex].clone();
+	while winner(unsafe {DB[curindex].brd}) == 0 {
+	    /*let board = DB[curindex].clone();
 	    write_board(board.brd, &mut game_history);
 	    if board.player == 1 {
-		// println!("Board rating: {}", rate_board(board));
-		print_board(board.brd);
-		print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
-		let s = input();
-		let truep = s.parse::<u8>().unwrap();
-		if truep >= 0 && truep < 9 && get(board.brd, board.scope, truep) == 0 {
-		}
-	    }
+	    // println!("Board rating: {}", rate_board(board));
+	    print_board(board.brd);
+	    print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
+	    let s = input();
+	    let truep = s.parse::<u8>().unwrap();
+	    if truep >= 0 && truep < 9 && get(board.brd, board.scope, truep) == 0 {
+	}
+	}
 	    else {
-		let truep: u8 = 0;
-		// truep = getcpmove(trueboard, truescope) as i8;
-	    }
-	} */
-	/* print_board(db[curindex].brd);
-	if winner(db[curindex].clone().brd) == 1 {
+	    let truep: u8 = 0;
+	    // truep = getcpmove(trueboard, truescope) as i8;
+	}*/
+	/* print_board(DB[curindex].brd);
+	if winner(DB[curindex].clone().brd) == 1 {
 	    print!("You ");
 	}
 	else {
 	    print!("The computer ");
 	}
 	println!("won. Thank you for playing!"); */
+	}
     }
     else if s == "2" {
 	let mut board: [[i8; 9]; 9] = [[0; 9]; 9];

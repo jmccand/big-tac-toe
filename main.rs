@@ -49,7 +49,9 @@ fn main() {
 	    parent: Option<usize>,
 	    children: [Option<usize>; 9],
 	}
-	thread::spawn(|| {
+	static mut DB: Vec<Board> = Vec::new();
+	// thread that builds the decision tree
+	thread::spawn(move || {
 	    let starter = Board {
 		brd: [[0; 9]; 9],
 		scope: 4,
@@ -58,8 +60,7 @@ fn main() {
 		children: [None; 9],
 		parent: None,
 	    };
-	    let mut db: Vec<Board> = Vec::new();
-	    db.push(starter);
+	    unsafe {DB.push(starter);}
 	    fn tryall(database: &mut Vec<Board>, index: usize) {
 		let mut b = database[index];
 		let myslice = get_slice(b.brd, b.scope);
@@ -83,50 +84,33 @@ fn main() {
 		}
 	    }
 	    let mut curin = 0;
-	    while db.len() > curin {
-		tryall(&mut db, curin);
+	    while unsafe {DB.len()} > curin {
+		tryall(unsafe {&mut DB}, curin);
 		curin += 1;
 	    }
 	});
-	let mut truebrd: [[i8; 9]; 9] = [[0; 9]; 9];
-	let mut truescope = 4;
-	let mut trueplayer = 1;
+	// thread that takes user input and gets best computer move
+	let mut curindex = 0;
 	println!("Welcome to 1 player Big Tac Toe!");
-	while winner(truebrd) == 0 {
-	    write_board(truebrd, &mut game_history);
-	    if trueplayer == 1 {
+	while winner(unsafe {DB[curindex].brd}) == 0 {
+	    let board = unsafe{DB[curindex]};
+	    write_board(board.brd, &mut game_history);
+	    if board.player == 1 {
 		// println!("Board rating: {}", rate_board(board));
-		print_board(truebrd);
-		if is_full(get_slice(truebrd, truescope)) {
-		    print!("You are on board number {}, but because it is full you can go anywhere you'd like. Please enter a number, 0-8 (inclusive) for where you want to set the scope (which quadrant): ", truescope);
-		    let nscope = input();
-		    let intscope = nscope.parse::<u8>().unwrap();
-		    if intscope >= 0 && intscope < 9 {
-			truescope = intscope;
-		    }
-		    else {
-			continue;
-		    }
-		}
-		print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", truescope);
+		print_board(board.brd);
+		print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
 		let s = input();
 		let truep = s.parse::<u8>().unwrap();
-		if truep >= 0 && truep < 9 && get(truebrd, truescope, truep) == 0 {
-		    place(&mut truebrd, trueplayer, truescope, truep);
-		    trueplayer *= -1;
-		    truescope = truep;
+		if truep < 9 && get(board.brd, board.scope, truep) == 0 {
 		}
 	    }
 	    else {
 		let truep: u8 = 0;
 		// truep = getcpmove(trueboard, truescope) as i8;
-		place(&mut truebrd, trueplayer, truescope, truep);
-		trueplayer *= -1;
-		truescope = truep;
 	    }
 	}
-	print_board(truebrd);
-	if winner(truebrd) == 1 {
+	print_board(unsafe{DB[curindex].brd});
+	if winner(unsafe{DB[curindex].brd}) == 1 {
 	    print!("You ");
 	}
 	else {

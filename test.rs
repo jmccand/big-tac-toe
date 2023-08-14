@@ -93,30 +93,30 @@ fn main() {
 	let mut curindex = 0;
 	println!("Welcome to 1 player Big Tac Toe!");
 	while winner(unsafe {DB[curindex].brd}) == 0 {
-	    /*let board = DB[curindex].clone();
+	    let board = unsafe{DB[curindex]};
 	    write_board(board.brd, &mut game_history);
 	    if board.player == 1 {
-	    // println!("Board rating: {}", rate_board(board));
-	    print_board(board.brd);
-	    print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
-	    let s = input();
-	    let truep = s.parse::<u8>().unwrap();
-	    if truep >= 0 && truep < 9 && get(board.brd, board.scope, truep) == 0 {
-	}
-	}
+		// println!("Board rating: {}", rate_board(board));
+		print_board(board.brd);
+		print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
+		let s = input();
+		let truep = s.parse::<u8>().unwrap();
+		if truep < 9 && get(board.brd, board.scope, truep) == 0 {
+		}
+	    }
 	    else {
-	    let truep: u8 = 0;
-	    // truep = getcpmove(trueboard, truescope) as i8;
-	}*/
-	/* print_board(DB[curindex].brd);
-	if winner(DB[curindex].clone().brd) == 1 {
+		let truep: u8 = 0;
+		// truep = getcpmove(trueboard, truescope) as i8;
+	    }
+	}
+	print_board(unsafe{DB[curindex].brd});
+	if winner(unsafe{DB[curindex].brd}) == 1 {
 	    print!("You ");
 	}
 	else {
 	    print!("The computer ");
 	}
-	println!("won. Thank you for playing!"); */
-	}
+	println!("won. Thank you for playing!");
     }
     else if s == "2" {
 	let mut board: [[i8; 9]; 9] = [[0; 9]; 9];

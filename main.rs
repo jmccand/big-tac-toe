@@ -81,17 +81,17 @@ fn main() {
     if s == "1" {
 	static mut DB: Vec<Board> = Vec::new();
 	// thread that builds the decision tree
+	let starter = Board {
+	    brd: [[0; 9]; 9],
+	    scope: 4,
+	    player: 1,
+	    movenum: 0,
+	    children: [None; 9],
+	    parent: None,
+	    prediction: None,
+	};
+	unsafe {DB.push(starter);}
 	thread::spawn(move || {
-	    let starter = Board {
-		brd: [[0; 9]; 9],
-		scope: 4,
-		player: 1,
-		movenum: 0,
-		children: [None; 9],
-		parent: None,
-		prediction: None,
-	    };
-	    unsafe {DB.push(starter);}
 	    fn tryall(database: &mut Vec<Board>, index: usize) {
 		let mut b = database[index];
 		let myslice = get_slice(b.brd, b.scope);

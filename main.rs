@@ -77,7 +77,7 @@ fn main() {
 				movenum: b.movenum + 1,
 				children: [None; 9],
 				parent: Some(index),
-				prediction: None
+				prediction: None,
 			    };
 			    place(&mut newbrd.brd, b.player, b.scope, p);
 			    b.children[p as usize] = Some(database.len() as usize);
@@ -110,7 +110,7 @@ fn main() {
 	    }
 	    else {
 		let truep: u8 = 0;
-		curindex = domove(board, getcpmove(board));
+		curindex = domove(board, getcpmove(unsafe{&DB}, curindex));
 	    }
 	}
 	print_board(unsafe{DB[curindex].brd});
@@ -609,6 +609,6 @@ fn domove(board: Board, pindex: u8) -> usize {
     panic!("domove did not get a usize!");
 }
 
-fn getcpmove(board: Board) -> u8 {
+fn getcpmove(db: &Vec<Board>, curindex: usize) -> u8 {
     return 0;
 }

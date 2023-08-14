@@ -13,14 +13,14 @@ struct Board {
     movenum: u8,
     parent: Option<usize>,
     children: [Option<usize>; 9],
-    prediction: Option<i32>,
+    prediction: Option<f32>,
 }
 
 impl Board {
     fn updatepred(&mut self, db: &Vec<Board>) {
 	if self.player == 1 {
 	    // get max rating from children
-	    let mut maxrate: Option<i32> = None;
+	    let mut maxrate: Option<f32> = None;
 	    for i in 0..9 {
 		if self.children[i] != None {
 		    if maxrate == None || db[self.children[i].unwrap()].prediction > maxrate {
@@ -32,7 +32,7 @@ impl Board {
 	}
 	else {
 	    // get min rating from children
-	    let mut minrate: Option<i32> = None;
+	    let mut minrate: Option<f32> = None;
 	    for i in 0..9 {
 		if self.children[i] != None {
 		    if minrate == None || db[self.children[i].unwrap()].prediction > minrate {
@@ -109,6 +109,7 @@ fn main() {
 				prediction: None,
 			    };
 			    place(&mut newbrd.brd, b.player, b.scope, p);
+			    newbrd.prediction = Some(rate_board(newbrd.brd));
 			    b.children[p as usize] = Some(database.len() as usize);
 			    database.push(newbrd);
 			}

@@ -91,13 +91,6 @@ fn main() {
 	});
 	// thread that takes user input and gets best computer move
 	let mut curindex: usize = 0;
-	let domove = |pindex: u8| -> usize {
-	    let result = unsafe{DB[curindex]}.children[pindex as usize];
-	    if let Some(goodres) = result {
-		return goodres;
-	    }
-	    panic!("domove did not get a usize!");
-	};
 	println!("Welcome to 1 player Big Tac Toe!");
 	while winner(unsafe {DB[curindex].brd}) == 0 {
 	    let board = unsafe{DB[curindex]};
@@ -109,12 +102,12 @@ fn main() {
 		let s = input();
 		let truep = s.parse::<u8>().unwrap();
 		if truep < 9 && get(board.brd, board.scope, truep) == 0 {
-		    curindex = domove(truep);
+		    curindex = domove(board, truep);
 		}
 	    }
 	    else {
 		let truep: u8 = 0;
-		curindex = domove(getcpmove(board));
+		curindex = domove(board, getcpmove(board));
 	    }
 	}
 	print_board(unsafe{DB[curindex].brd});
@@ -603,6 +596,14 @@ fn is_full(board: [[i8; 3]; 3]) -> bool {
 	}
     }
     return true;
+}
+
+fn domove(board: Board, pindex: u8) -> usize {
+    let result = board.children[pindex as usize];
+    if let Some(goodres) = result {
+	return goodres;
+    }
+    panic!("domove did not get a usize!");
 }
 
 fn getcpmove(board: Board) -> u8 {

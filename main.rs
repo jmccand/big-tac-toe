@@ -16,6 +16,35 @@ struct Board {
     prediction: Option<i32>,
 }
 
+impl Board {
+    fn updatepred(&mut self, db: &Vec<Board>) {
+	if self.player == 1 {
+	    // get max rating from children
+	    let mut maxrate: Option<i32> = None;
+	    for i in 0..9 {
+		if self.children[i] != None {
+		    if maxrate == None || db[self.children[i].unwrap()].prediction > maxrate {
+			maxrate = db[self.children[i].unwrap()].prediction;
+		    }
+		}
+	    }
+	    self.prediction = maxrate;
+	}
+	else {
+	    // get min rating from children
+	    let mut minrate: Option<i32> = None;
+	    for i in 0..9 {
+		if self.children[i] != None {
+		    if minrate == None || db[self.children[i].unwrap()].prediction > minrate {
+			minrate = db[self.children[i].unwrap()].prediction;
+		    }
+		}
+	    }
+	    self.prediction = minrate;
+	}
+    }
+}
+
 fn test() {
 }
 

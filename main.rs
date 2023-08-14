@@ -13,6 +13,7 @@ struct Board {
     movenum: u8,
     parent: Option<usize>,
     children: [Option<usize>; 9],
+    prediction: Option<i32>,
 }
 
 fn test() {
@@ -59,6 +60,7 @@ fn main() {
 		movenum: 0,
 		children: [None; 9],
 		parent: None,
+		prediction: None,
 	    };
 	    unsafe {DB.push(starter);}
 	    fn tryall(database: &mut Vec<Board>, index: usize) {
@@ -75,6 +77,7 @@ fn main() {
 				movenum: b.movenum + 1,
 				children: [None; 9],
 				parent: Some(index),
+				prediction: None
 			    };
 			    place(&mut newbrd.brd, b.player, b.scope, p);
 			    b.children[p as usize] = Some(database.len() as usize);

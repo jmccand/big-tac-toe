@@ -49,19 +49,19 @@ fn main() {
 	    parent: Option<usize>,
 	    children: [Option<usize>; 9],
 	}
-	let mut starter = Board {
-	    brd: [[0; 9]; 9],
-	    scope: 4,
-	    player: 1,
-	    movenum: 0,
-	    children: [None; 9],
-	    parent: None,
-	};
 	thread::spawn(|| {
+	    let starter = Board {
+		brd: [[0; 9]; 9],
+		scope: 4,
+		player: 1,
+		movenum: 0,
+		children: [None; 9],
+		parent: None,
+	    };
 	    let mut db: Vec<Board> = Vec::new();
 	    db.push(starter);
-	    let mut tryall = |index: usize| {
-		let b = db[index];
+	    fn tryall(database: &mut Vec<Board>, index: usize) {
+		let mut b = database[index];
 		let myslice = get_slice(b.brd, b.scope);
 		for row in 0..3 {
 		    for col in 0..3 {
@@ -76,19 +76,16 @@ fn main() {
 				parent: Some(index),
 			    };
 			    place(&mut newbrd.brd, b.player, b.scope, p);
-			    b.children[p as usize] = Some(db.len() as usize);
-			    db.push(newbrd);
+			    b.children[p as usize] = Some(database.len() as usize);
+			    database.push(newbrd);
 			}
 		    }
 		}
-	    };
+	    }
 	    let mut curin = 0;
-	    loop {
-		tryall(curin);
+	    while db.len() > curin {
+		tryall(&mut db, curin);
 		curin += 1;
-		if db.len() <= curin {
-		    break;
-		}
 	    }
 	});
 	let mut truebrd: [[i8; 9]; 9] = [[0; 9]; 9];

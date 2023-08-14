@@ -5,6 +5,15 @@ use std::vec::Vec;
 use std::thread;
 use std::time::Duration;
 // use std::io::prelude::*;
+#[derive(Copy, Clone)]
+struct Board {
+    brd: [[i8; 9]; 9],
+    scope: u8,
+    player: i8,
+    movenum: u8,
+    parent: Option<usize>,
+    children: [Option<usize>; 9],
+}
 
 fn test() {
 }
@@ -40,15 +49,6 @@ fn main() {
     print!("Welcome to Big Tac Toe! Enter the number of players: ");
     let s = input();
     if s == "1" {
-	#[derive(Copy, Clone)]
-	struct Board {
-	    brd: [[i8; 9]; 9],
-	    scope: u8,
-	    player: i8,
-	    movenum: u8,
-	    parent: Option<usize>,
-	    children: [Option<usize>; 9],
-	}
 	static mut DB: Vec<Board> = Vec::new();
 	// thread that builds the decision tree
 	thread::spawn(move || {
@@ -90,10 +90,14 @@ fn main() {
 	    }
 	});
 	// thread that takes user input and gets best computer move
-	let mut curindex = 0;
+	let mut curindex: usize = 0;
 	let domove = |pindex: u8| -> usize {
-	    return unsafe{DB[curindex]}[p as usize];
-	}
+	    let result = unsafe{DB[curindex]}.children[pindex as usize];
+	    if let Some(goodres) = result {
+		return goodres;
+	    }
+	    panic!("domove did not get a usize!");
+	};
 	println!("Welcome to 1 player Big Tac Toe!");
 	while winner(unsafe {DB[curindex].brd}) == 0 {
 	    let board = unsafe{DB[curindex]};
@@ -105,12 +109,12 @@ fn main() {
 		let s = input();
 		let truep = s.parse::<u8>().unwrap();
 		if truep < 9 && get(board.brd, board.scope, truep) == 0 {
-		    curindex = domove(p);
+		    curindex = domove(truep);
 		}
 	    }
 	    else {
 		let truep: u8 = 0;
-		curindex = domove(getcpmove(trueboard, truescope) as u8);
+		curindex = domove(getcpmove(board));
 	    }
 	}
 	print_board(unsafe{DB[curindex].brd});
@@ -599,4 +603,8 @@ fn is_full(board: [[i8; 3]; 3]) -> bool {
 	}
     }
     return true;
+}
+
+fn getcpmove(board: Board) -> u8 {
+    return 0;
 }

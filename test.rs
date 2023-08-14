@@ -20,7 +20,7 @@ fn main() {
     };
     let mut db: Vec<Board> = Vec::new();
     db.push(starter);
-    let mut tryall = |index: usize| {
+    fn tryall (db: &mut Vec<Board>, index: usize) {
 	let mut b = db[index];
 	for row in 0..3 {
 	    for col in 0..3 {
@@ -39,8 +39,8 @@ fn main() {
 	}
     };
     let mut curin = 0;
-    loop {
-	tryall(curin);
+    while db.len() > curin {
+	tryall(&mut db, curin);
 	curin += 1;
 	if db.len() <= curin {
 	    break;

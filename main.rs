@@ -140,7 +140,7 @@ fn main() {
 	    }
 	    else {
 		let truep: u8 = 0;
-		curindex = domove(board, getcpmove(unsafe{&DB}, curindex));
+		curindex = domove(board, getcpmove(unsafe{&mut DB}, curindex));
 	    }
 	}
 	print_board(unsafe{DB[curindex].brd});
@@ -639,6 +639,38 @@ fn domove(board: Board, pindex: u8) -> usize {
     panic!("domove did not get a usize!");
 }
 
-fn getcpmove(db: &Vec<Board>, curindex: usize) -> u8 {
-    return 0;
+fn getcpmove(db: &mut Vec<Board>, curindex: usize) -> u8 {
+    for child in 0..9 {
+	if db[curindex].children[child] != None {
+	    let newindex = db[curindex].children[child].unwrap();
+	    calcmove(&mut *db, newindex);
+	}
+    }
+    let mut minindex: u8 = 0;
+    let mut minrating: Option<f32> = None;
+    for child in 1..9 {
+	if db[curindex].children[child] != None {
+	    let childrating = db[db[curindex].children[child].unwrap()].prediction.unwrap();
+	    if minrating == None || childrating < minrating.unwrap() {
+		minrating = Some(childrating);
+		minindex = child as u8;
+	    }
+	}
+    }
+    return minindex;
+}
+
+fn calcmove(db: &mut Vec<Board>, curindex: usize) {
+    if db[curindex].movenum == db[db.len() - 1].movenum - 1 {
+	return;
+    }
+    else {
+	for child in 0..9 {
+	    if db[curindex].children[child] != None {
+		let newindex = db[curindex].children[child].unwrap();
+		calcmove(&mut *db, newindex);
+	    }
+	}
+	// db[curindex].updatepred(&*db);
+    }
 }

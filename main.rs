@@ -16,32 +16,31 @@ struct Board {
     prediction: Option<f32>,
 }
 
-impl Board {
-    fn updatepred(&mut self, db: &Vec<Board>) {
-	if self.player == 1 {
-	    // get max rating from children
-	    let mut maxrate: Option<f32> = None;
-	    for i in 0..9 {
-		if self.children[i] != None {
-		    if maxrate == None || db[self.children[i].unwrap()].prediction > maxrate {
-			maxrate = db[self.children[i].unwrap()].prediction;
-		    }
+fn updatepred(db: &mut Vec<Board>, curindex: usize) {
+    let cpboard = db[curindex].clone();
+    if cpboard.player == 1 {
+	// get max rating from children
+	let mut maxrate: Option<f32> = None;
+	for i in 0..9 {
+	    if cpboard.children[i] != None {
+		if maxrate == None || db[cpboard.children[i].unwrap()].prediction > maxrate {
+		    maxrate = db[cpboard.children[i].unwrap()].prediction;
 		}
 	    }
-	    self.prediction = maxrate;
 	}
-	else {
-	    // get min rating from children
-	    let mut minrate: Option<f32> = None;
-	    for i in 0..9 {
-		if self.children[i] != None {
-		    if minrate == None || db[self.children[i].unwrap()].prediction > minrate {
-			minrate = db[self.children[i].unwrap()].prediction;
-		    }
+	db[curindex].prediction = maxrate;
+    }
+    else {
+	// get min rating from children
+	let mut minrate: Option<f32> = None;
+	for i in 0..9 {
+	    if cpboard.children[i] != None {
+		if minrate == None || db[cpboard.children[i].unwrap()].prediction > minrate {
+		    minrate = db[cpboard.children[i].unwrap()].prediction;
 		}
 	    }
-	    self.prediction = minrate;
 	}
+	db[curindex].prediction = minrate;
     }
 }
 
@@ -120,6 +119,7 @@ fn main() {
 	    while unsafe {DB.len()} > curin {
 		tryall(unsafe {&mut DB}, curin);
 		curin += 1;
+		println!("{}", curin);
 	    }
 	});
 	// thread that takes user input and gets best computer move

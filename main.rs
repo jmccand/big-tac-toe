@@ -1,11 +1,8 @@
 use std::io::{stdin,stdout,Write};
 use std::fs::File;
-use std::backtrace::Backtrace;
 use std::vec::Vec;
 use std::thread;
-use std::time::Duration;
-// use std::io::prelude::*;
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 struct Board {
     brd: [[i8; 9]; 9],
     scope: u8,
@@ -90,26 +87,25 @@ fn main() {
 	    prediction: None,
 	};
 	unsafe {DB.push(starter);}
-	thread::spawn(move || {
+	thread::spawn(|| {
 	    fn tryall(database: &mut Vec<Board>, index: usize) {
-		let mut b = database[index];
-		let myslice = get_slice(b.brd, b.scope);
+		let myslice = get_slice(database[index].brd, database[index].scope);
 		for row in 0..3 {
 		    for col in 0..3 {
 			if myslice[row][col] == 0 {
 			    let p: u8 = (row * 3 + col) as u8;
 			    let mut newbrd = Board {
-				brd: b.brd.clone(),
+				brd: database[index].brd.clone(),
 				scope: p,
-				player: b.player * -1,
-				movenum: b.movenum + 1,
+				player: database[index].player * -1,
+				movenum: database[index].movenum + 1,
 				children: [None; 9],
 				parent: Some(index),
 				prediction: None,
 			    };
-			    place(&mut newbrd.brd, b.player, b.scope, p);
+			    place(&mut newbrd.brd, database[index].player, database[index].scope, p);
 			    newbrd.prediction = Some(rate_board(newbrd.brd));
-			    b.children[p as usize] = Some(database.len() as usize);
+			    database[index].children[p as usize] = Some(database.len() as usize);
 			    database.push(newbrd);
 			}
 		    }
@@ -119,14 +115,15 @@ fn main() {
 	    while unsafe {DB.len()} > curin {
 		tryall(unsafe {&mut DB}, curin);
 		curin += 1;
-		println!("{}", curin);
+		// println!("{}", curin);
 	    }
 	});
 	// thread that takes user input and gets best computer move
 	let mut curindex: usize = 0;
 	println!("Welcome to 1 player Big Tac Toe!");
 	while winner(unsafe {DB[curindex].brd}) == 0 {
-	    let board = unsafe{DB[curindex]};
+	    let board = unsafe{&DB[curindex]};
+	    println!("{:?}", board);
 	    write_board(board.brd, &mut game_history);
 	    if board.player == 1 {
 		// println!("Board rating: {}", rate_board(board));
@@ -135,12 +132,12 @@ fn main() {
 		let s = input();
 		let truep = s.parse::<u8>().unwrap();
 		if truep < 9 && get(board.brd, board.scope, truep) == 0 {
-		    curindex = domove(board, truep);
+		    curindex = domove(*board, truep);
 		}
 	    }
 	    else {
 		let truep: u8 = 0;
-		curindex = domove(board, getcpmove(unsafe{&mut DB}, curindex));
+		curindex = domove(*board, getcpmove(unsafe{&mut DB}, curindex));
 	    }
 	}
 	print_board(unsafe{DB[curindex].brd});
@@ -636,7 +633,7 @@ fn domove(board: Board, pindex: u8) -> usize {
     if let Some(goodres) = result {
 	return goodres;
     }
-    panic!("domove did not get a usize!");
+    panic!("domove did not get a usize! {:?}", board.children);
 }
 
 fn getcpmove(db: &mut Vec<Board>, curindex: usize) -> u8 {
@@ -671,6 +668,6 @@ fn calcmove(db: &mut Vec<Board>, curindex: usize) {
 		calcmove(&mut *db, newindex);
 	    }
 	}
-	// db[curindex].updatepred(&*db);
+	updatepred(&mut *db, curindex);
     }
 }

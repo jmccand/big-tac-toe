@@ -122,8 +122,7 @@ fn main() {
 	let mut curindex: usize = 0;
 	println!("Welcome to 1 player Big Tac Toe!");
 	while winner(unsafe {DB[curindex].brd}) == 0 {
-	    let board = unsafe{&DB[curindex]};
-	    println!("{:?}", board);
+	    let mut board = unsafe{&DB[curindex]};
 	    write_board(board.brd, &mut game_history);
 	    if board.player == 1 {
 		// println!("Board rating: {}", rate_board(board));
@@ -131,13 +130,17 @@ fn main() {
 		print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
 		let s = input();
 		let truep = s.parse::<u8>().unwrap();
+		board = unsafe{&DB[curindex]};
 		if truep < 9 && get(board.brd, board.scope, truep) == 0 {
+		    println!("doing human move");
 		    curindex = domove(*board, truep);
+		    println!("finished human move");
 		}
 	    }
 	    else {
-		let truep: u8 = 0;
+		println!("doing computer move");
 		curindex = domove(*board, getcpmove(unsafe{&mut DB}, curindex));
+		println!("finished computer move");
 	    }
 	}
 	print_board(unsafe{DB[curindex].brd});

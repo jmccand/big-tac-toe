@@ -751,24 +751,27 @@ fn cpstack(board: [[i8; 9]; 9], scope: i8) -> i8 {
     let mut curin = 0;
     while tocheck.len() > curin {
 	let wcase = tocheck[curin];
-	let rating = rate_board(wcase.b);
 	// println!("tocheck length: {}", tocheck.len());
 	// print_board(wcase.b);
-	if rating < minratings[wcase.ogmove as usize] {
-	    minratings[wcase.ogmove as usize] = rating;
-	}
-	if wcase.ahead < 4 {
+	if wcase.ahead < 6 {
 	    tryall(&mut tocheck, &wcase);
+	}
+	if wcase.ahead == 6 {
+	    let rating = rate_board(wcase.b);
+	    if rating < minratings[wcase.ogmove as usize] {
+		minratings[wcase.ogmove as usize] = rating;
+	    }
 	}
 	curin += 1;
     }
-    let mut maxindex: i8 = 0;
+    let mut minindex: i8 = 0;
     for i in 1..9 {
-	if minratings[i] > minratings[maxindex as usize] && minratings[i] != 10000.0{
-	    maxindex = i as i8;
+	println!("{}: {}", i, minratings[i]);
+	if minratings[i] < minratings[minindex as usize] && minratings[i] != 10000.0 {
+	    minindex = i as i8;
 	}
     }
-    return maxindex;
+    return minindex;
 }
 
 fn is_full(board: [[i8; 3]; 3]) -> bool {

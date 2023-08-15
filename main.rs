@@ -13,6 +13,17 @@ struct Board {
     prediction: Option<f32>,
 }
 
+impl Board {
+    fn obselete(&self, db: &Vec<Board>, curindex: usize) -> bool {
+	let mut ogboard = &db[curindex];
+	let mut thisboard = self;
+	while thisboard.movenum > ogboard.movenum {
+	    thisboard = &db[thisboard.parent.unwrap()];
+	}
+	return thisboard.brd != ogboard.brd;
+    }
+}
+
 fn updatepred(db: &mut Vec<Board>, curindex: usize) {
     let cpboard = db[curindex].clone();
     if cpboard.player == 1 {
@@ -76,6 +87,7 @@ fn main() {
     let s = input();
     if s == "1" {
 	static mut DB: Vec<Board> = Vec::new();
+	static mut curindex: usize = 0;
 	// thread that builds the decision tree
 	let starter = Board {
 	    brd: [[0; 9]; 9],
@@ -113,7 +125,8 @@ fn main() {
 	    }
 	    let mut curin = 0;
 	    while unsafe {DB.len()} > curin {
-		if !obselete(unsafe{&DB}, curin) {
+		let thisboard = unsafe{DB[curin]}.clone();
+		if !thisboard.obselete(unsafe{&DB}, unsafe{curindex}) {
 		    tryall(unsafe {&mut DB}, curin);
 		}
 		curin += 1;
@@ -121,7 +134,6 @@ fn main() {
 	    }
 	});
 	// thread that takes user input and gets best computer move
-	let mut curindex: usize = 0;
 	println!("Welcome to 1 player Big Tac Toe!");
 	while winner(unsafe {DB[curindex].brd}) == 0 {
 	    let mut board = unsafe{&DB[curindex]};
@@ -134,15 +146,11 @@ fn main() {
 		let truep = s.parse::<u8>().unwrap();
 		board = unsafe{&DB[curindex]};
 		if truep < 9 && get(board.brd, board.scope, truep) == 0 {
-		    println!("doing human move");
-		    curindex = domove(*board, truep);
-		    println!("finished human move");
+		    unsafe{curindex = domove(*board, truep);}
 		}
 	    }
 	    else {
-		println!("doing computer move");
-		curindex = domove(*board, getcpmove(unsafe{&mut DB}, curindex));
-		println!("finished computer move");
+		unsafe{curindex = domove(*board, getcpmove(unsafe{&mut DB}, unsafe{curindex}));}
 	    }
 	}
 	print_board(unsafe{DB[curindex].brd});
@@ -675,15 +683,4 @@ fn calcmove(db: &mut Vec<Board>, curindex: usize) {
 	}
 	updatepred(&mut *db, curindex);
     }
-}
-fn obselete(db: &Vec<Board>, curindex: usize) -> bool {
-    let mut ogboard = &db[curindex];
-    let mut thisboard = &db[curindex];
-    while thisboard.movenum > ogboard.movenum {
-	thisboard = &db[thisboard.parent.unwrap()];
-    }
-    if thisboard.brd != ogboard.brd {
-	println!("obselete false");
-    }
-    return thisboard.brd != ogboard.brd;
 }

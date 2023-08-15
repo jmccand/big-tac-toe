@@ -102,23 +102,47 @@ fn main() {
 	thread::spawn(|| {
 	    fn tryall(database: &mut Vec<Board>, index: usize) {
 		let myslice = get_slice(database[index].brd, database[index].scope);
-		for row in 0..3 {
-		    for col in 0..3 {
-			if myslice[row][col] == 0 {
-			    let p: u8 = (row * 3 + col) as u8;
-			    let mut newbrd = Board {
-				brd: database[index].brd.clone(),
-				scope: p,
-				player: database[index].player * -1,
-				movenum: database[index].movenum + 1,
-				children: [None; 9],
-				parent: Some(index),
-				prediction: None,
-			    };
-			    place(&mut newbrd.brd, database[index].player, database[index].scope, p);
-			    newbrd.prediction = Some(rate_board(newbrd.brd));
-			    database[index].children[p as usize] = Some(database.len() as usize);
-			    database.push(newbrd);
+		if is_full(myslice) {
+		    for row in 0..9 {
+			for col in 0..9 {
+			    if database[index].brd[row][col] == 0 {
+				let p: u8 = ((row % 3) * 3 + col % 3) as u8;
+				let mut newbrd = Board {
+				    brd: database[index].brd.clone(),
+				    scope: p,
+				    player: database[index].player * -1,
+				    movenum: database[index].movenum + 1,
+				    children: [None; 9],
+				    parent: Some(index),
+				    prediction: None,
+				};
+				place(&mut newbrd.brd, database[index].player, ((row / 3) * 3 + (col / 3)) as u8, p);
+				newbrd.prediction = Some(rate_board(newbrd.brd));
+				database[index].children[p as usize] = Some(database.len() as usize);
+				database.push(newbrd);
+			    }
+			}
+		    }
+		}
+		else {
+		    for row in 0..3 {
+			for col in 0..3 {
+			    if myslice[row][col] == 0 {
+				let p: u8 = (row * 3 + col) as u8;
+				let mut newbrd = Board {
+				    brd: database[index].brd.clone(),
+				    scope: p,
+				    player: database[index].player * -1,
+				    movenum: database[index].movenum + 1,
+				    children: [None; 9],
+				    parent: Some(index),
+				    prediction: None,
+				};
+				place(&mut newbrd.brd, database[index].player, database[index].scope, p);
+				newbrd.prediction = Some(rate_board(newbrd.brd));
+				database[index].children[p as usize] = Some(database.len() as usize);
+				database.push(newbrd);
+			    }
 			}
 		    }
 		}

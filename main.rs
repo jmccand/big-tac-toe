@@ -13,6 +13,17 @@ struct Board {
     prediction: Option<f32>,
 }
 
+impl Board {
+    fn obselete(&self, db: &Vec<Board>, curindex: usize) -> bool {
+	let ogboard = db[curindex].clone();
+	let mut thisboard = &db[curindex];
+	while thisboard.movenum > ogboard.movenum {
+	    thisboard = &db[thisboard.parent.unwrap()];
+	}
+	return !(thisboard.brd == ogboard.brd);
+    }
+}
+
 fn updatepred(db: &mut Vec<Board>, curindex: usize) {
     let cpboard = db[curindex].clone();
     if cpboard.player == 1 {

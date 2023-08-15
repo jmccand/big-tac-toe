@@ -13,17 +13,6 @@ struct Board {
     prediction: Option<f32>,
 }
 
-impl Board {
-    fn obselete(&self, db: &Vec<Board>, curindex: usize) -> bool {
-	let ogboard = db[curindex].clone();
-	let mut thisboard = &db[curindex];
-	while thisboard.movenum > ogboard.movenum {
-	    thisboard = &db[thisboard.parent.unwrap()];
-	}
-	return !(thisboard.brd == ogboard.brd);
-    }
-}
-
 fn updatepred(db: &mut Vec<Board>, curindex: usize) {
     let cpboard = db[curindex].clone();
     if cpboard.player == 1 {
@@ -124,7 +113,9 @@ fn main() {
 	    }
 	    let mut curin = 0;
 	    while unsafe {DB.len()} > curin {
-		tryall(unsafe {&mut DB}, curin);
+		if !obselete(unsafe{&DB}, curin) {
+		    tryall(unsafe {&mut DB}, curin);
+		}
 		curin += 1;
 		// println!("{}", curin);
 	    }
@@ -684,4 +675,15 @@ fn calcmove(db: &mut Vec<Board>, curindex: usize) {
 	}
 	updatepred(&mut *db, curindex);
     }
+}
+fn obselete(db: &Vec<Board>, curindex: usize) -> bool {
+    let mut ogboard = &db[curindex];
+    let mut thisboard = &db[curindex];
+    while thisboard.movenum > ogboard.movenum {
+	thisboard = &db[thisboard.parent.unwrap()];
+    }
+    if thisboard.brd != ogboard.brd {
+	println!("obselete false");
+    }
+    return thisboard.brd != ogboard.brd;
 }

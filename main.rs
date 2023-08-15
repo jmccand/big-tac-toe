@@ -141,6 +141,7 @@ fn main() {
 	    if board.player == 1 {
 		// println!("Board rating: {}", rate_board(board));
 		print_board(board.brd);
+		// println!("Board rating: {}. Computer can see {} moves ahead.", rate_board(board.brd), unsafe{DB.last().unwrap().movenum - DB[curindex].movenum});
 		print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
 		let s = input();
 		let truep = s.parse::<u8>().unwrap();
@@ -667,6 +668,7 @@ fn getcpmove(db: &mut Vec<Board>, curindex: usize) -> u8 {
 	    }
 	}
     }
+    // println!("Computer is moving towards a board with rating {}", minrating.unwrap());
     return minindex;
 }
 

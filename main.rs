@@ -2,6 +2,7 @@ use std::io::{stdin,stdout,Write};
 use std::fs::File;
 use std::vec::Vec;
 use std::thread;
+
 #[derive(Clone, Debug)]
 struct Board {
     brd: [[i8; 9]; 9],
@@ -15,7 +16,7 @@ struct Board {
 
 impl Board {
     fn obselete(&self, db: &Vec<Board>, curindex: usize) -> bool {
-	let mut ogboard = &db[curindex];
+	let ogboard = &db[curindex];
 	let mut thisboard = self;
 	while thisboard.movenum > ogboard.movenum {
 	    thisboard = &db[thisboard.parent.unwrap()];
@@ -83,11 +84,11 @@ fn main() {
     let s = input();
     if s == "1" {
 	static mut DB: Vec<Board> = Vec::new();
-	static mut curindex: usize = 0;
+	static mut CURINDEX: usize = 0;
 	// thread that builds the decision tree
 	let starter = Board {
 	    brd: [[0; 9]; 9],
-	    scope: 4,
+	    scope: 1,
 	    player: 1,
 	    movenum: 0,
 	    children: Vec::new(),
@@ -148,7 +149,7 @@ fn main() {
 	    let mut curin = 0;
 	    while unsafe {DB.len()} > curin {
 		let thisboard = unsafe{DB[curin].clone()};
-		if !thisboard.obselete(unsafe{&DB}, unsafe{curindex}) {
+		if !thisboard.obselete(unsafe{&DB}, unsafe{CURINDEX}) {
 		    tryall(unsafe {&mut DB}, curin);
 		}
 		curin += 1;
@@ -157,27 +158,28 @@ fn main() {
 	});
 	// thread that takes user input and gets best computer move
 	println!("Welcome to 1 player Big Tac Toe!");
-	while winner(unsafe {DB[curindex].brd}) == 0 {
-	    let mut board = unsafe{DB[curindex].clone()};
+	while winner(unsafe {DB[CURINDEX].brd}) == 0 {
+	    let mut board = unsafe{DB[CURINDEX].clone()};
+	    // println!("This board has {} children", board.children.len());
 	    write_board(board.brd, &mut game_history);
 	    if board.player == 1 {
 		// println!("Board rating: {}", rate_board(board));
 		print_board(board.brd);
-		println!("Board rating: {}. Computer can see {} moves ahead.", rate_board(board.brd), unsafe{DB.last().unwrap().movenum - DB[curindex].movenum});
+		println!("Board rating: {}. Computer can see {} moves ahead.", rate_board(board.brd), unsafe{DB.last().unwrap().movenum - DB[CURINDEX].movenum});
 		print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
 		let up = input();
 		let truep = up.parse::<u8>().unwrap();
-		board = unsafe{DB[curindex].clone()};
+		board = unsafe{DB[CURINDEX].clone()};
 		if truep < 9 && get(board.brd, board.scope, truep) == 0 {
-		    unsafe{curindex = domove(board, truep);}
+		    unsafe{CURINDEX = domove(board, truep);}
 		}
 	    }
 	    else {
-		unsafe{curindex = domove(board, getcpmove(unsafe{&mut DB}, unsafe{curindex}));}
+		unsafe{CURINDEX = domove(board, getcpmove(&mut DB, CURINDEX));}
 	    }
 	}
-	print_board(unsafe{DB[curindex].brd});
-	if winner(unsafe{DB[curindex].brd}) == 1 {
+	print_board(unsafe{DB[CURINDEX].brd});
+	if winner(unsafe{DB[CURINDEX].brd}) == 1 {
 	    print!("You ");
 	}
 	else {
@@ -641,18 +643,6 @@ fn rate_ratings(winners: [[i8; 3]; 3], ratings: [[i32; 3]; 3]) -> f32 {
     return total;
 }
 
-fn possible_moves(board: [[i8; 3]; 3]) -> i32 {
-    let mut possible: i32 = 0;
-    for row in 0..3 {
-	for col in 0..3 {
-	    if board[row][col] == 0 {
-		possible += 1;
-	    }
-	}
-    }
-    return possible;
-}
-
 fn is_full(board: [[i8; 3]; 3]) -> bool {
     for row in 0..3 {
 	for col in 0..3 {
@@ -665,7 +655,22 @@ fn is_full(board: [[i8; 3]; 3]) -> bool {
 }
 
 fn domove(board: Board, pindex: u8) -> usize {
-    return board.children[pindex as usize];
+    if board.player == 1 {
+	let mut veccount: usize = 0;
+	for row in 0..3 {
+	    for col in 0..3 {
+		if row * 3 + col < pindex {
+		    if get(board.brd, board.scope, (row * 3 + col) as u8) == 0 {
+			veccount += 1;
+		    }
+		}
+	    }
+	}
+	return board.children[veccount];
+    }
+    else {
+	return board.children[pindex as usize];
+    }
 }
 
 fn getcpmove(db: &mut Vec<Board>, curindex: usize) -> u8 {
@@ -674,20 +679,21 @@ fn getcpmove(db: &mut Vec<Board>, curindex: usize) -> u8 {
 	calcmove(&mut *db, newindex);
     }
     let mut minindex: u8 = 0;
-    let mut minrating: Option<f32> = None;
+    let mut minrating: Option<f32> = db[db[curindex].children[minindex as usize]].prediction;
     for child in 1..db[curindex].children.len() {
 	let childrating = db[db[curindex].children[child]].prediction.unwrap();
-	if minrating == None || childrating < minrating.unwrap() {
+	// print!(", {}", childrating);
+	if childrating < minrating.unwrap() {
 	    minrating = Some(childrating);
 	    minindex = child as u8;
 	}
     }
-    // println!("Computer is moving towards a board with rating {}", minrating.unwrap());
+    println!("Computer is moving towards a board with rating {}", minrating.unwrap());
     return minindex;
 }
 
 fn calcmove(db: &mut Vec<Board>, curindex: usize) {
-    if db[curindex].movenum == db[db.len() - 1].movenum - 1 {
+    if db[curindex].movenum == db.last().unwrap().movenum - 1 {
 	return;
     }
     else {

@@ -158,7 +158,7 @@ fn main() {
 	// thread that takes user input and gets best computer move
 	println!("Welcome to 1 player Big Tac Toe!");
 	while winner(unsafe {DB[curindex].brd}) == 0 {
-	    let mut board = unsafe{&DB[curindex]};
+	    let mut board = unsafe{DB[curindex].clone()};
 	    println!("board player: {}", board.player);
 	    write_board(board.brd, &mut game_history);
 	    if board.player == 1 {
@@ -169,14 +169,14 @@ fn main() {
 		let up = input();
 		let truep = up.parse::<u8>().unwrap();
 		println!("Got user input: {}", truep);
-		board = unsafe{&DB[curindex]};
+		board = unsafe{DB[curindex].clone()};
 		if truep < 9 && get(board.brd, board.scope, truep) == 0 {
-		    unsafe{curindex = domove(board.clone(), truep);}
+		    unsafe{curindex = domove(board, truep);}
 		}
 	    }
 	    else {
 		println!("computer's turn!");
-		unsafe{curindex = domove(board.clone(), getcpmove(unsafe{&mut DB}, unsafe{curindex}));}
+		unsafe{curindex = domove(board, getcpmove(unsafe{&mut DB}, unsafe{curindex}));}
 	    }
 	}
 	print_board(unsafe{DB[curindex].brd});

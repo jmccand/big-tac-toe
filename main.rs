@@ -2,14 +2,14 @@ use std::io::{stdin,stdout,Write};
 use std::fs::File;
 use std::vec::Vec;
 use std::thread;
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
 struct Board {
     brd: [[i8; 9]; 9],
     scope: u8,
     player: i8,
     movenum: u8,
     parent: Option<usize>,
-    children: [Option<usize>; 9],
+    children: Vec<usize>,
     prediction: Option<f32>,
 }
 
@@ -29,11 +29,9 @@ fn updatepred(db: &mut Vec<Board>, curindex: usize) {
     if cpboard.player == 1 {
 	// get max rating from children
 	let mut maxrate: Option<f32> = None;
-	for i in 0..9 {
-	    if cpboard.children[i] != None {
-		if maxrate == None || db[cpboard.children[i].unwrap()].prediction > maxrate {
-		    maxrate = db[cpboard.children[i].unwrap()].prediction;
-		}
+	for i in 0..cpboard.children.len() {
+	    if maxrate == None || db[cpboard.children[i]].prediction > maxrate {
+		maxrate = db[cpboard.children[i]].prediction;
 	    }
 	}
 	db[curindex].prediction = maxrate;
@@ -41,11 +39,9 @@ fn updatepred(db: &mut Vec<Board>, curindex: usize) {
     else {
 	// get min rating from children
 	let mut minrate: Option<f32> = None;
-	for i in 0..9 {
-	    if cpboard.children[i] != None {
-		if minrate == None || db[cpboard.children[i].unwrap()].prediction > minrate {
-		    minrate = db[cpboard.children[i].unwrap()].prediction;
-		}
+	for i in 0..cpboard.children.len() {
+	    if minrate == None || db[cpboard.children[i]].prediction > minrate {
+		minrate = db[cpboard.children[i]].prediction;
 	    }
 	}
 	db[curindex].prediction = minrate;
@@ -94,7 +90,7 @@ fn main() {
 	    scope: 4,
 	    player: 1,
 	    movenum: 0,
-	    children: [None; 9],
+	    children: Vec::new(),
 	    parent: None,
 	    prediction: None,
 	};
@@ -112,13 +108,14 @@ fn main() {
 				    scope: p,
 				    player: database[index].player * -1,
 				    movenum: database[index].movenum + 1,
-				    children: [None; 9],
+				    children: Vec::new(),
 				    parent: Some(index),
 				    prediction: None,
 				};
 				place(&mut newbrd.brd, database[index].player, ((row / 3) * 3 + (col / 3)) as u8, p);
 				newbrd.prediction = Some(rate_board(newbrd.brd));
-				database[index].children[p as usize] = Some(database.len() as usize);
+				let dblength = database.len() as usize;
+				database[index].children.push(dblength);
 				database.push(newbrd);
 			    }
 			}
@@ -134,13 +131,14 @@ fn main() {
 				    scope: p,
 				    player: database[index].player * -1,
 				    movenum: database[index].movenum + 1,
-				    children: [None; 9],
+				    children: Vec::new(),
 				    parent: Some(index),
 				    prediction: None,
 				};
 				place(&mut newbrd.brd, database[index].player, database[index].scope, p);
 				newbrd.prediction = Some(rate_board(newbrd.brd));
-				database[index].children[p as usize] = Some(database.len() as usize);
+				let dblength = database.len() as usize;
+				database[index].children.push(dblength);
 				database.push(newbrd);
 			    }
 			}
@@ -149,7 +147,7 @@ fn main() {
 	    }
 	    let mut curin = 0;
 	    while unsafe {DB.len()} > curin {
-		let thisboard = unsafe{DB[curin]}.clone();
+		let thisboard = unsafe{DB[curin].clone()};
 		if !thisboard.obselete(unsafe{&DB}, unsafe{curindex}) {
 		    tryall(unsafe {&mut DB}, curin);
 		}
@@ -161,21 +159,24 @@ fn main() {
 	println!("Welcome to 1 player Big Tac Toe!");
 	while winner(unsafe {DB[curindex].brd}) == 0 {
 	    let mut board = unsafe{&DB[curindex]};
+	    println!("board player: {}", board.player);
 	    write_board(board.brd, &mut game_history);
 	    if board.player == 1 {
 		// println!("Board rating: {}", rate_board(board));
 		print_board(board.brd);
 		// println!("Board rating: {}. Computer can see {} moves ahead.", rate_board(board.brd), unsafe{DB.last().unwrap().movenum - DB[curindex].movenum});
 		print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
-		let s = input();
-		let truep = s.parse::<u8>().unwrap();
+		let up = input();
+		let truep = up.parse::<u8>().unwrap();
+		println!("Got user input: {}", truep);
 		board = unsafe{&DB[curindex]};
 		if truep < 9 && get(board.brd, board.scope, truep) == 0 {
-		    unsafe{curindex = domove(*board, truep);}
+		    unsafe{curindex = domove(board.clone(), truep);}
 		}
 	    }
 	    else {
-		unsafe{curindex = domove(*board, getcpmove(unsafe{&mut DB}, unsafe{curindex}));}
+		println!("computer's turn!");
+		unsafe{curindex = domove(board.clone(), getcpmove(unsafe{&mut DB}, unsafe{curindex}));}
 	    }
 	}
 	print_board(unsafe{DB[curindex].brd});
@@ -667,29 +668,21 @@ fn is_full(board: [[i8; 3]; 3]) -> bool {
 }
 
 fn domove(board: Board, pindex: u8) -> usize {
-    let result = board.children[pindex as usize];
-    if let Some(goodres) = result {
-	return goodres;
-    }
-    panic!("domove did not get a usize! {:?}", board.children);
+    return board.children[pindex as usize];
 }
 
 fn getcpmove(db: &mut Vec<Board>, curindex: usize) -> u8 {
-    for child in 0..9 {
-	if db[curindex].children[child] != None {
-	    let newindex = db[curindex].children[child].unwrap();
-	    calcmove(&mut *db, newindex);
-	}
+    for child in 0..db[curindex].children.len() {
+	let newindex = db[curindex].children[child];
+	calcmove(&mut *db, newindex);
     }
     let mut minindex: u8 = 0;
     let mut minrating: Option<f32> = None;
-    for child in 1..9 {
-	if db[curindex].children[child] != None {
-	    let childrating = db[db[curindex].children[child].unwrap()].prediction.unwrap();
-	    if minrating == None || childrating < minrating.unwrap() {
-		minrating = Some(childrating);
-		minindex = child as u8;
-	    }
+    for child in 1..db[curindex].children.len() {
+	let childrating = db[db[curindex].children[child]].prediction.unwrap();
+	if minrating == None || childrating < minrating.unwrap() {
+	    minrating = Some(childrating);
+	    minindex = child as u8;
 	}
     }
     // println!("Computer is moving towards a board with rating {}", minrating.unwrap());
@@ -701,11 +694,9 @@ fn calcmove(db: &mut Vec<Board>, curindex: usize) {
 	return;
     }
     else {
-	for child in 0..9 {
-	    if db[curindex].children[child] != None {
-		let newindex = db[curindex].children[child].unwrap();
-		calcmove(&mut *db, newindex);
-	    }
+	for child in 0..db[curindex].children.len() {
+	    let newindex = db[curindex].children[child];
+	    calcmove(&mut *db, newindex);
 	}
 	updatepred(&mut *db, curindex);
     }

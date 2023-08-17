@@ -1,12 +1,14 @@
 use std::env;
 use std::fs;
+use std::process::Command;
 mod main;
+
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     let contents = fs::read_to_string(args[1].clone()).unwrap();
     let rawboard = parse_board(contents);
-    println!("{:?}", rawboard);
+    main::print_board(rawboard);
     let starter = main::Board {
 	brd: rawboard,
 	scope: 1,
@@ -17,7 +19,18 @@ fn main() {
 	prediction: Some(main::rate_board(rawboard)),
     };
     unsafe{main::DB.push(starter);}
+    println!("building tree");
     main::buildtree();
+    loop {
+	let mut child = Command::new("sleep").arg("1").spawn().unwrap();
+	let _result = child.wait().unwrap();
+	if unsafe{main::DB[main::DB.len() - 1].movenum} >= 4 {
+	    println!("breaking");
+	    break;
+	}
+    }
+    println!("calculating computer move");
+    println!("computer move: {}", main::getcpmove(unsafe{&mut main::DB}, 0));
 }
 
 fn parse_board(contents: String) -> [[i8; 9]; 9] {

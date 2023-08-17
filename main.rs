@@ -14,6 +14,9 @@ pub struct Board {
     pub prediction: Option<f32>,
 }
 
+pub static mut DB: Vec<Board> = Vec::new();
+pub static mut CURINDEX: usize = 0;
+
 impl Board {
     fn obselete(&self, db: &Vec<Board>, curindex: usize) -> bool {
 	let ogboard = &db[curindex];
@@ -24,9 +27,6 @@ impl Board {
 	return thisboard.brd != ogboard.brd;
     }
 }
-
-static mut DB: Vec<Board> = Vec::new();
-static mut CURINDEX: usize = 0;
 
 fn updatepred(db: &mut Vec<Board>, curindex: usize) {
     let cpboard = db[curindex].clone();

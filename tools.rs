@@ -16,7 +16,8 @@ fn main() {
 	children: Vec::new(),
 	prediction: Some(main::rate_board(rawboard)),
     };
-    main::play(starter);
+    unsafe{main::DB.push(starter);}
+    main::buildtree();
 }
 
 fn parse_board(contents: String) -> [[i8; 9]; 9] {

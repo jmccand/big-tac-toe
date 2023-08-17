@@ -98,49 +98,51 @@ fn main() {
 	unsafe {DB.push(starter);}
 	thread::spawn(|| {
 	    fn tryall(database: &mut Vec<Board>, index: usize) {
-		let myslice = get_slice(database[index].brd, database[index].scope);
-		if is_full(myslice) {
-		    for row in 0..9 {
-			for col in 0..9 {
-			    if database[index].brd[row][col] == 0 {
-				let p: u8 = ((row % 3) * 3 + col % 3) as u8;
-				let mut newbrd = Board {
-				    brd: database[index].brd.clone(),
-				    scope: p,
-				    player: database[index].player * -1,
-				    movenum: database[index].movenum + 1,
-				    children: Vec::new(),
-				    parent: Some(index),
-				    prediction: None,
-				};
-				place(&mut newbrd.brd, database[index].player, ((row / 3) * 3 + (col / 3)) as u8, p);
-				newbrd.prediction = Some(rate_board(newbrd.brd));
-				let dblength = database.len() as usize;
-				database[index].children.push(dblength);
-				database.push(newbrd);
+		if winner(database[index].brd) == 0 {
+		    let myslice = get_slice(database[index].brd, database[index].scope);
+		    if is_full(myslice) {
+			for row in 0..9 {
+			    for col in 0..9 {
+				if database[index].brd[row][col] == 0 {
+				    let p: u8 = ((row % 3) * 3 + col % 3) as u8;
+				    let mut newbrd = Board {
+					brd: database[index].brd.clone(),
+					scope: p,
+					player: database[index].player * -1,
+					movenum: database[index].movenum + 1,
+					children: Vec::new(),
+					parent: Some(index),
+					prediction: None,
+				    };
+				    place(&mut newbrd.brd, database[index].player, ((row / 3) * 3 + (col / 3)) as u8, p);
+				    newbrd.prediction = Some(rate_board(newbrd.brd));
+				    let dblength = database.len() as usize;
+				    database[index].children.push(dblength);
+				    database.push(newbrd);
+				}
 			    }
 			}
 		    }
-		}
-		else {
-		    for row in 0..3 {
-			for col in 0..3 {
-			    if myslice[row][col] == 0 {
-				let p: u8 = (row * 3 + col) as u8;
-				let mut newbrd = Board {
-				    brd: database[index].brd.clone(),
-				    scope: p,
-				    player: database[index].player * -1,
-				    movenum: database[index].movenum + 1,
-				    children: Vec::new(),
-				    parent: Some(index),
-				    prediction: None,
-				};
-				place(&mut newbrd.brd, database[index].player, database[index].scope, p);
-				newbrd.prediction = Some(rate_board(newbrd.brd));
-				let dblength = database.len() as usize;
-				database[index].children.push(dblength);
-				database.push(newbrd);
+		    else {
+			for row in 0..3 {
+			    for col in 0..3 {
+				if myslice[row][col] == 0 {
+				    let p: u8 = (row * 3 + col) as u8;
+				    let mut newbrd = Board {
+					brd: database[index].brd.clone(),
+					scope: p,
+					player: database[index].player * -1,
+					movenum: database[index].movenum + 1,
+					children: Vec::new(),
+					parent: Some(index),
+					prediction: None,
+				    };
+				    place(&mut newbrd.brd, database[index].player, database[index].scope, p);
+				    newbrd.prediction = Some(rate_board(newbrd.brd));
+				    let dblength = database.len() as usize;
+				    database[index].children.push(dblength);
+				    database.push(newbrd);
+				}
 			    }
 			}
 		    }
@@ -450,7 +452,7 @@ fn rate_board(board: [[i8; 9]; 9]) -> f32 {
 
 fn rate_small(board: [[i8; 3]; 3]) -> i32 {
     let mut total: i32 = 0;
-    // check rows
+    // check rows  
     for row in 0..3 {
 	let mut counts = [0; 2];
 	for col in 0..3 {

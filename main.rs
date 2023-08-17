@@ -25,6 +25,9 @@ impl Board {
     }
 }
 
+static mut DB: Vec<Board> = Vec::new();
+static mut CURINDEX: usize = 0;
+
 fn updatepred(db: &mut Vec<Board>, curindex: usize) {
     let cpboard = db[curindex].clone();
     if cpboard.player == 1 {
@@ -84,17 +87,17 @@ fn main() {
 	    parent: None,
 	    prediction: None,
 	};
+	println!("Welcome to 1 player Big Tac Toe!");
 	play(starter);
     }
     else if s == "2" {
+	println!("Welcome to 2 player Big Tac Toe!");
 	twoplayer();
     }
 }
 
 pub fn play(starter: Board) {
     let mut game_history = File::create("game_history.txt").expect("failed to open file");
-    static mut DB: Vec<Board> = Vec::new();
-    static mut CURINDEX: usize = 0;
     // thread that builds the decision tree
     unsafe {DB.push(starter);}
     thread::spawn(|| {
@@ -160,7 +163,6 @@ pub fn play(starter: Board) {
 	}
     });
     // thread that takes user input and gets best computer move
-    println!("Welcome to 1 player Big Tac Toe!");
     while winner(unsafe {DB[CURINDEX].brd}) == 0 {
 	let mut board = unsafe{DB[CURINDEX].clone()};
 	// println!("This board has {} children", board.children.len());
@@ -195,7 +197,6 @@ fn twoplayer() {
     let mut board: [[i8; 9]; 9] = [[0; 9]; 9];
     let mut scope = 4;
     let mut player = 1;
-    println!("Welcome to 2 player Big Tac Toe!");
     while winner(board) == 0 {
 	print_board(board);
 	if player == 1 {

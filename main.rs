@@ -49,9 +49,6 @@ fn updatepred(db: &mut Vec<Board>, curindex: usize) {
     }
 }
 
-fn test() {
-}
-
 fn write_board(board: [[i8; 9]; 9], outfile: &mut File) {
     outfile.write(b"\n[").expect("failed to write file");
     for row in 0..9 {
@@ -75,162 +72,162 @@ fn write_board(board: [[i8; 9]; 9], outfile: &mut File) {
 }
 
 fn main() {
-    let starter = Board {
-	brd: [[0; 9]; 9],
-	scope: 1,
-	player: 1,
-	movenum: 0,
-	children: Vec::new(),
-	parent: None,
-	prediction: None,
-    };
-    play(starter);
-}
-
-pub fn play(starter: Board) {
-    if false {
-	test();
-	return;
-    }
-    let mut game_history = File::create("game_history.txt").expect("failed to open file");
     print!("Welcome to Big Tac Toe! Enter the number of players: ");
     let s = input();
     if s == "1" {
-	static mut DB: Vec<Board> = Vec::new();
-	static mut CURINDEX: usize = 0;
-	// thread that builds the decision tree
-	unsafe {DB.push(starter);}
-	thread::spawn(|| {
-	    fn tryall(database: &mut Vec<Board>, index: usize) {
-		if winner(database[index].brd) == 0 {
-		    let myslice = get_slice(database[index].brd, database[index].scope);
-		    if is_full(myslice) {
-			for row in 0..9 {
-			    for col in 0..9 {
-				if database[index].brd[row][col] == 0 {
-				    let p: u8 = ((row % 3) * 3 + col % 3) as u8;
-				    let mut newbrd = Board {
-					brd: database[index].brd.clone(),
-					scope: p,
-					player: database[index].player * -1,
-					movenum: database[index].movenum + 1,
-					children: Vec::new(),
-					parent: Some(index),
-					prediction: None,
-				    };
-				    place(&mut newbrd.brd, database[index].player, ((row / 3) * 3 + (col / 3)) as u8, p);
-				    newbrd.prediction = Some(rate_board(newbrd.brd));
-				    let dblength = database.len() as usize;
-				    database[index].children.push(dblength);
-				    database.push(newbrd);
-				}
-			    }
-			}
-		    }
-		    else {
-			for row in 0..3 {
-			    for col in 0..3 {
-				if myslice[row][col] == 0 {
-				    let p: u8 = (row * 3 + col) as u8;
-				    let mut newbrd = Board {
-					brd: database[index].brd.clone(),
-					scope: p,
-					player: database[index].player * -1,
-					movenum: database[index].movenum + 1,
-					children: Vec::new(),
-					parent: Some(index),
-					prediction: None,
-				    };
-				    place(&mut newbrd.brd, database[index].player, database[index].scope, p);
-				    newbrd.prediction = Some(rate_board(newbrd.brd));
-				    let dblength = database.len() as usize;
-				    database[index].children.push(dblength);
-				    database.push(newbrd);
-				}
-			    }
-			}
-		    }
-		}
-	    }
-	    let mut curin = 0;
-	    while unsafe {DB.len()} > curin {
-		let thisboard = unsafe{DB[curin].clone()};
-		if !thisboard.obselete(unsafe{&DB}, unsafe{CURINDEX}) {
-		    tryall(unsafe {&mut DB}, curin);
-		}
-		curin += 1;
-		// println!("{}", curin);
-	    }
-	});
-	// thread that takes user input and gets best computer move
-	println!("Welcome to 1 player Big Tac Toe!");
-	while winner(unsafe {DB[CURINDEX].brd}) == 0 {
-	    let mut board = unsafe{DB[CURINDEX].clone()};
-	    // println!("This board has {} children", board.children.len());
-	    write_board(board.brd, &mut game_history);
-	    if board.player == 1 {
-		// println!("Board rating: {}", rate_board(board));
-		print_board(board.brd);
-		println!("Board rating: {}. Computer can see {} moves ahead.", rate_board(board.brd), unsafe{DB.last().unwrap().movenum - DB[CURINDEX].movenum});
-		print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
-		let up = input();
-		let truep = up.parse::<u8>().unwrap();
-		board = unsafe{DB[CURINDEX].clone()};
-		if truep < 9 && get(board.brd, board.scope, truep) == 0 {
-		    unsafe{CURINDEX = domove(board, truep);}
-		}
-	    }
-	    else {
-		unsafe{CURINDEX = domove(board, getcpmove(&mut DB, CURINDEX));}
-	    }
-	}
-	print_board(unsafe{DB[CURINDEX].brd});
-	if winner(unsafe{DB[CURINDEX].brd}) == 1 {
-	    print!("You ");
-	}
-	else {
-	    print!("The computer ");
-	}
-	println!("won. Thank you for playing!");
+	let starter = Board {
+	    brd: [[0; 9]; 9],
+	    scope: 1,
+	    player: 1,
+	    movenum: 0,
+	    children: Vec::new(),
+	    parent: None,
+	    prediction: None,
+	};
+	play(starter);
     }
     else if s == "2" {
-	let mut board: [[i8; 9]; 9] = [[0; 9]; 9];
-	let mut scope = 4;
-	let mut player = 1;
-	println!("Welcome to 2 player Big Tac Toe!");
-	while winner(board) == 0 {
-	    print_board(board);
-	    if player == 1 {
-		print!("Player 1");
-	    }
-	    else {
-		print!("Player 2");
-	    }
-	    print!(", you are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your ", scope);
-	    if player == 1 {
-		print!("X: ");
-	    }
-	    else {
-		print!("O: ");
-	    }
-	    let s = input();
-	    let p = s.parse::<u8>().unwrap();
-	    if p < 9 {
-		place(&mut board, player, scope, p);
-		player *= -1;
-		scope = p;
-	    }
-	}
-	print_board(board);
-	if winner(board) == 1 {
-	    print!("Player 1 ");
-	}
-	else {
-	    print!("Player 2 ");
-	}
-	println!("won. Thank you for playing!");
+	twoplayer();
     }
 }
+
+pub fn play(starter: Board) {
+    let mut game_history = File::create("game_history.txt").expect("failed to open file");
+    static mut DB: Vec<Board> = Vec::new();
+    static mut CURINDEX: usize = 0;
+    // thread that builds the decision tree
+    unsafe {DB.push(starter);}
+    thread::spawn(|| {
+	fn tryall(database: &mut Vec<Board>, index: usize) {
+	    if winner(database[index].brd) == 0 {
+		let myslice = get_slice(database[index].brd, database[index].scope);
+		if is_full(myslice) {
+		    for row in 0..9 {
+			for col in 0..9 {
+			    if database[index].brd[row][col] == 0 {
+				let p: u8 = ((row % 3) * 3 + col % 3) as u8;
+				let mut newbrd = Board {
+				    brd: database[index].brd.clone(),
+				    scope: p,
+				    player: database[index].player * -1,
+				    movenum: database[index].movenum + 1,
+				    children: Vec::new(),
+				    parent: Some(index),
+				    prediction: None,
+				};
+				place(&mut newbrd.brd, database[index].player, ((row / 3) * 3 + (col / 3)) as u8, p);
+				newbrd.prediction = Some(rate_board(newbrd.brd));
+				let dblength = database.len() as usize;
+				database[index].children.push(dblength);
+				database.push(newbrd);
+			    }
+			}
+		    }
+		}
+		else {
+		    for row in 0..3 {
+			for col in 0..3 {
+			    if myslice[row][col] == 0 {
+				let p: u8 = (row * 3 + col) as u8;
+				let mut newbrd = Board {
+				    brd: database[index].brd.clone(),
+				    scope: p,
+				    player: database[index].player * -1,
+				    movenum: database[index].movenum + 1,
+				    children: Vec::new(),
+				    parent: Some(index),
+				    prediction: None,
+				};
+				place(&mut newbrd.brd, database[index].player, database[index].scope, p);
+				newbrd.prediction = Some(rate_board(newbrd.brd));
+				let dblength = database.len() as usize;
+				database[index].children.push(dblength);
+				database.push(newbrd);
+			    }
+			}
+		    }
+		}
+	    }
+	}
+	let mut curin = 0;
+	while unsafe {DB.len()} > curin {
+	    let thisboard = unsafe{DB[curin].clone()};
+	    if !thisboard.obselete(unsafe{&DB}, unsafe{CURINDEX}) {
+		tryall(unsafe {&mut DB}, curin);
+	    }
+	    curin += 1;
+	    // println!("{}", curin);
+	}
+    });
+    // thread that takes user input and gets best computer move
+    println!("Welcome to 1 player Big Tac Toe!");
+    while winner(unsafe {DB[CURINDEX].brd}) == 0 {
+	let mut board = unsafe{DB[CURINDEX].clone()};
+	// println!("This board has {} children", board.children.len());
+	write_board(board.brd, &mut game_history);
+	if board.player == 1 {
+	    // println!("Board rating: {}", rate_board(board));
+	    print_board(board.brd);
+	    println!("Board rating: {}. Computer can see {} moves ahead.", rate_board(board.brd), unsafe{DB.last().unwrap().movenum - DB[CURINDEX].movenum});
+	    print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
+	    let up = input();
+	    let truep = up.parse::<u8>().unwrap();
+	    board = unsafe{DB[CURINDEX].clone()};
+	    if truep < 9 && get(board.brd, board.scope, truep) == 0 {
+		unsafe{CURINDEX = domove(board, truep);}
+	    }
+	}
+	else {
+	    unsafe{CURINDEX = domove(board, getcpmove(&mut DB, CURINDEX));}
+	}
+    }
+    print_board(unsafe{DB[CURINDEX].brd});
+    if winner(unsafe{DB[CURINDEX].brd}) == 1 {
+	print!("You ");
+    }
+    else {
+	print!("The computer ");
+    }
+    println!("won. Thank you for playing!");
+}
+
+fn twoplayer() {
+    let mut board: [[i8; 9]; 9] = [[0; 9]; 9];
+    let mut scope = 4;
+    let mut player = 1;
+    println!("Welcome to 2 player Big Tac Toe!");
+    while winner(board) == 0 {
+	print_board(board);
+	if player == 1 {
+	    print!("Player 1");
+	}
+	else {
+	    print!("Player 2");
+	}
+	print!(", you are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your ", scope);
+	if player == 1 {
+	    print!("X: ");
+	}
+	else {
+	    print!("O: ");
+	}
+	let s = input();
+	let p = s.parse::<u8>().unwrap();
+	if p < 9 {
+	    place(&mut board, player, scope, p);
+	    player *= -1;
+	    scope = p;
+	}
+    }
+    print_board(board);
+    if winner(board) == 1 {
+	print!("Player 1 ");
+    }
+    else {
+	print!("Player 2 ");
+    }
+    println!("won. Thank you for playing!");
+}    
 
 fn input() -> String {
     let mut s = String::new();

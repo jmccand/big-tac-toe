@@ -100,6 +100,39 @@ pub fn play(starter: Board) {
     let mut game_history = File::create("game_history.txt").expect("failed to open file");
     // thread that builds the decision tree
     unsafe {DB.push(starter);}
+    buildtree();
+    // thread that takes user input and gets best computer move
+    while winner(unsafe {DB[CURINDEX].brd}) == 0 {
+	let mut board = unsafe{DB[CURINDEX].clone()};
+	// println!("This board has {} children", board.children.len());
+	write_board(board.brd, &mut game_history);
+	if board.player == 1 {
+	    // println!("Board rating: {}", rate_board(board));
+	    print_board(board.brd);
+	    println!("Board rating: {}. Computer can see {} moves ahead.", rate_board(board.brd), unsafe{DB.last().unwrap().movenum - DB[CURINDEX].movenum});
+	    print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
+	    let up = input();
+	    let truep = up.parse::<u8>().unwrap();
+	    board = unsafe{DB[CURINDEX].clone()};
+	    if truep < 9 && get(board.brd, board.scope, truep) == 0 {
+		unsafe{CURINDEX = domove(board, truep);}
+	    }
+	}
+	else {
+	    unsafe{CURINDEX = domove(board, getcpmove(&mut DB, CURINDEX));}
+	}
+    }
+    print_board(unsafe{DB[CURINDEX].brd});
+    if winner(unsafe{DB[CURINDEX].brd}) == 1 {
+	print!("You ");
+    }
+    else {
+	print!("The computer ");
+    }
+    println!("won. Thank you for playing!");
+}
+
+pub fn buildtree() {
     thread::spawn(|| {
 	fn tryall(database: &mut Vec<Board>, index: usize) {
 	    if winner(database[index].brd) == 0 {
@@ -162,36 +195,7 @@ pub fn play(starter: Board) {
 	    // println!("{}", curin);
 	}
     });
-    // thread that takes user input and gets best computer move
-    while winner(unsafe {DB[CURINDEX].brd}) == 0 {
-	let mut board = unsafe{DB[CURINDEX].clone()};
-	// println!("This board has {} children", board.children.len());
-	write_board(board.brd, &mut game_history);
-	if board.player == 1 {
-	    // println!("Board rating: {}", rate_board(board));
-	    print_board(board.brd);
-	    println!("Board rating: {}. Computer can see {} moves ahead.", rate_board(board.brd), unsafe{DB.last().unwrap().movenum - DB[CURINDEX].movenum});
-	    print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
-	    let up = input();
-	    let truep = up.parse::<u8>().unwrap();
-	    board = unsafe{DB[CURINDEX].clone()};
-	    if truep < 9 && get(board.brd, board.scope, truep) == 0 {
-		unsafe{CURINDEX = domove(board, truep);}
-	    }
-	}
-	else {
-	    unsafe{CURINDEX = domove(board, getcpmove(&mut DB, CURINDEX));}
-	}
-    }
-    print_board(unsafe{DB[CURINDEX].brd});
-    if winner(unsafe{DB[CURINDEX].brd}) == 1 {
-	print!("You ");
-    }
-    else {
-	print!("The computer ");
-    }
-    println!("won. Thank you for playing!");
-}
+}    
 
 fn twoplayer() {
     let mut board: [[i8; 9]; 9] = [[0; 9]; 9];

@@ -6,7 +6,17 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let contents = fs::read_to_string(args[1].clone()).unwrap();
     let rawboard = parse_board(contents);
-    println!("{:?}", board);
+    println!("{:?}", rawboard);
+    let starter = main::Board {
+	brd: rawboard,
+	scope: 1,
+	player: -1,
+	movenum: 0,
+	parent: None,
+	children: Vec::new(),
+	prediction: Some(main::rate_board(rawboard)),
+    };
+    main::play(starter);
 }
 
 fn parse_board(contents: String) -> [[i8; 9]; 9] {
@@ -32,5 +42,3 @@ fn parse_board(contents: String) -> [[i8; 9]; 9] {
     }
     return board;
 }
-
-fn simulate(

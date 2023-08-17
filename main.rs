@@ -4,14 +4,14 @@ use std::vec::Vec;
 use std::thread;
 
 #[derive(Clone, Debug)]
-struct Board {
-    brd: [[i8; 9]; 9],
-    scope: u8,
-    player: i8,
-    movenum: u8,
-    parent: Option<usize>,
-    children: Vec<usize>,
-    prediction: Option<f32>,
+pub struct Board {
+    pub brd: [[i8; 9]; 9],
+    pub scope: u8,
+    pub player: i8,
+    pub movenum: u8,
+    pub parent: Option<usize>,
+    pub children: Vec<usize>,
+    pub prediction: Option<f32>,
 }
 
 impl Board {
@@ -87,7 +87,7 @@ fn main() {
     play(starter);
 }
 
-fn play(starter: Board) {
+pub fn play(starter: Board) {
     if false {
 	test();
 	return;
@@ -437,7 +437,7 @@ fn small_winner(board: [[i8; 3]; 3]) -> i8 {
     return 0;
 }
 
-fn rate_board(board: [[i8; 9]; 9]) -> f32 {
+pub fn rate_board(board: [[i8; 9]; 9]) -> f32 {
     let mut total = 0.0;
     let mut ratings: [[i32; 3]; 3] = [[0; 3]; 3];
     let mut winners: [[i8; 3]; 3] = [[0; 3]; 3];

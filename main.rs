@@ -75,6 +75,19 @@ fn write_board(board: [[i8; 9]; 9], outfile: &mut File) {
 }
 
 fn main() {
+    let starter = Board {
+	brd: [[0; 9]; 9],
+	scope: 1,
+	player: 1,
+	movenum: 0,
+	children: Vec::new(),
+	parent: None,
+	prediction: None,
+    };
+    play(starter);
+}
+
+fn play(starter: Board) {
     if false {
 	test();
 	return;
@@ -86,15 +99,6 @@ fn main() {
 	static mut DB: Vec<Board> = Vec::new();
 	static mut CURINDEX: usize = 0;
 	// thread that builds the decision tree
-	let starter = Board {
-	    brd: [[0; 9]; 9],
-	    scope: 1,
-	    player: 1,
-	    movenum: 0,
-	    children: Vec::new(),
-	    parent: None,
-	    prediction: None,
-	};
 	unsafe {DB.push(starter);}
 	thread::spawn(|| {
 	    fn tryall(database: &mut Vec<Board>, index: usize) {

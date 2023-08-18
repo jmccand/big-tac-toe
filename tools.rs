@@ -62,6 +62,12 @@ fn show_comparison(mut db: &mut Vec<main::Board>, curindex: usize, depth: u8) {
 	println!("Rating: {}", main::rate_board(db[curindex].brd));
 	return;
     }
+    else if db[curindex].movenum == 0 {
+	let thisboard = db[curindex].clone();
+	for child in 0..thisboard.children.len() {
+	    show_comparison(db, thisboard.children[child], depth);
+	}
+    }
     else {
 	let thisboard = db[curindex].clone();
 	let predchild = main::updatepred(&mut *db, curindex);

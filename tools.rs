@@ -25,12 +25,11 @@ fn main() {
 	let mut child = Command::new("sleep").arg("1").spawn().unwrap();
 	let _result = child.wait().unwrap();
 	if unsafe{main::DB[main::DB.len() - 1].movenum} >= 4 {
-	    println!("breaking");
 	    break;
 	}
     }
-    println!("calculating computer move");
-    println!("computer move: {}", main::getcpmove(unsafe{&mut main::DB}, 0));
+    println!("computer move: {}", main::getcpmove(unsafe{&mut main::DB}, 0, 3));
+    show_comparison(unsafe{&mut main::DB}, 0, 3);
 }
 
 fn parse_board(contents: String) -> [[i8; 9]; 9] {
@@ -55,4 +54,19 @@ fn parse_board(contents: String) -> [[i8; 9]; 9] {
 	thisindex += 1;
     }
     return board;
+}
+
+fn show_comparison(mut db: &mut Vec<main::Board>, curindex: usize, depth: u8) {
+    if db[curindex].movenum == depth {
+	main::print_board(db[curindex].brd);
+	println!("Rating: {}", main::rate_board(db[curindex].brd));
+	return;
+    }
+    else {
+	let thisboard = db[curindex].clone();
+	let predchild = main::updatepred(&mut *db, curindex);
+	show_comparison(db, thisboard.children[predchild], depth);
+    }
+	
+    
 }

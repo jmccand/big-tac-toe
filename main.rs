@@ -28,27 +28,33 @@ impl Board {
     }
 }
 
-fn updatepred(db: &mut Vec<Board>, curindex: usize) {
+pub fn updatepred(db: &mut Vec<Board>, curindex: usize) -> usize {
     let cpboard = db[curindex].clone();
     if cpboard.player == 1 {
 	// get max rating from children
 	let mut maxrate: Option<f32> = None;
+	let mut maxindex: usize = 0;
 	for i in 0..cpboard.children.len() {
 	    if maxrate == None || db[cpboard.children[i]].prediction > maxrate {
 		maxrate = db[cpboard.children[i]].prediction;
+		maxindex = i as usize;
 	    }
 	}
 	db[curindex].prediction = maxrate;
+	return maxindex;
     }
     else {
 	// get min rating from children
 	let mut minrate: Option<f32> = None;
+	let mut minindex: usize = 0;
 	for i in 0..cpboard.children.len() {
 	    if minrate == None || db[cpboard.children[i]].prediction > minrate {
 		minrate = db[cpboard.children[i]].prediction;
+		minindex = i as usize;
 	    }
 	}
 	db[curindex].prediction = minrate;
+	return minindex;
     }
 }
 
@@ -119,7 +125,7 @@ pub fn play(starter: Board) {
 	    }
 	}
 	else {
-	    unsafe{CURINDEX = domove(board, getcpmove(&mut DB, CURINDEX));}
+	    unsafe{CURINDEX = domove(board, getcpmove(&mut DB, CURINDEX, DB.last().unwrap().movenum - 1));}
 	}
     }
     print_board(unsafe{DB[CURINDEX].brd});
@@ -283,7 +289,7 @@ fn get_slice(board: [[i8; 9]; 9], scope: u8) -> [[i8; 3]; 3] {
     return slice;
 }
 
-fn print_board(board: [[i8; 9]; 9]) {
+pub fn print_board(board: [[i8; 9]; 9]) {
     println!();
     for row in 0..9 {
 	if row % 3 == 0 && row != 0 {
@@ -689,10 +695,10 @@ fn domove(board: Board, pindex: u8) -> usize {
     }
 }
 
-fn getcpmove(db: &mut Vec<Board>, curindex: usize) -> u8 {
+pub fn getcpmove(db: &mut Vec<Board>, curindex: usize, maxdepth: u8) -> u8 {
     for child in 0..db[curindex].children.len() {
 	let newindex = db[curindex].children[child];
-	calcmove(&mut *db, newindex);
+	calcmove(&mut *db, newindex, maxdepth);
     }
     let mut minindex: u8 = 0;
     let mut minrating: Option<f32> = db[db[curindex].children[minindex as usize]].prediction;
@@ -708,14 +714,14 @@ fn getcpmove(db: &mut Vec<Board>, curindex: usize) -> u8 {
     return minindex;
 }
 
-fn calcmove(db: &mut Vec<Board>, curindex: usize) {
-    if db[curindex].movenum == db.last().unwrap().movenum - 1 {
+fn calcmove(db: &mut Vec<Board>, curindex: usize, maxdepth: u8) {
+    if db[curindex].movenum == maxdepth {
 	return;
     }
     else {
 	for child in 0..db[curindex].children.len() {
 	    let newindex = db[curindex].children[child];
-	    calcmove(&mut *db, newindex);
+	    calcmove(&mut *db, newindex, maxdepth);
 	}
 	updatepred(&mut *db, curindex);
     }

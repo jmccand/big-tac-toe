@@ -112,17 +112,17 @@ pub fn play(starter: Board) {
     buildtree();
     // thread that takes user input and gets best computer move
     while winner(unsafe {DB[CURINDEX].brd}) == 0 {
-	let mut board = unsafe{DB[CURINDEX].clone()};
+	let board = unsafe{&DB[CURINDEX].clone()};
 	// println!("This board has {} children", board.children.len());
 	write_board(board.brd, &mut game_history);
 	if board.player == 1 {
 	    // println!("Board rating: {}", rate_board(board));
-	    print_board(board.brd);
+	    print_board(&board);
 	    println!("Board rating: {}. Computer can see {} moves ahead.", rate_board(board.brd), unsafe{DB.last().unwrap().movenum - DB[CURINDEX].movenum});
 	    print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
 	    let up = input();
 	    let truep = up.parse::<u8>().unwrap();
-	    board = unsafe{DB[CURINDEX].clone()};
+	    let board = unsafe{&DB[CURINDEX].clone()};
 	    if truep < 9 && get(board.brd, board.scope, truep) == 0 {
 		unsafe{CURINDEX = domove(board, truep);}
 	    }
@@ -131,7 +131,7 @@ pub fn play(starter: Board) {
 	    unsafe{CURINDEX = domove(board, getcpmove(&mut DB, CURINDEX, Some(DB.last().unwrap().movenum - 1)));}
 	}
     }
-    print_board(unsafe{DB[CURINDEX].brd});
+    print_board(unsafe{&DB[CURINDEX]});
     if winner(unsafe{DB[CURINDEX].brd}) == 1 {
 	print!("You ");
     }
@@ -211,7 +211,7 @@ fn twoplayer() {
     let mut scope = 4;
     let mut player = 1;
     while winner(board) == 0 {
-	print_board(board);
+	raw_print_board(board);
 	if player == 1 {
 	    print!("Player 1");
 	}
@@ -233,7 +233,7 @@ fn twoplayer() {
 	    scope = p;
 	}
     }
-    print_board(board);
+    raw_print_board(board);
     if winner(board) == 1 {
 	print!("Player 1 ");
     }
@@ -292,7 +292,7 @@ fn get_slice(board: [[i8; 9]; 9], scope: u8) -> [[i8; 3]; 3] {
     return slice;
 }
 
-pub fn print_board(board: [[i8; 9]; 9]) {
+fn raw_print_board(board: [[i8; 9]; 9]) {
     println!();
     for row in 0..9 {
 	if row % 3 == 0 && row != 0 {
@@ -332,6 +332,74 @@ pub fn print_board(board: [[i8; 9]; 9]) {
 		}
 		else {
 		    if board[(((row / 3) as u8) * 3 + 1) as usize][(((col / 3) as u8) * 3 + 1) as usize] == 0 {
+			if value == 0 {
+			    print!(" _");
+			}
+			else {
+			    if value == 1 {
+				print!(" X");
+			    }
+			    else {
+				print!(" O");
+			    }
+			}
+		    }
+		    else {
+			if value == 0 {
+			    print!(" _");
+			}
+			else {
+			    print!(" *");
+			}
+		    }
+		}
+	    }
+	}
+	println!();
+    }
+    println!();
+}
+
+pub fn print_board(board: &Board) {
+    println!();
+    for row in 0..9 {
+	if row % 3 == 0 && row != 0 {
+	    println!("{}", "-".repeat(23));
+	}
+	for col in 0..9 {
+	    if col % 3 == 0 && col != 0 {
+		print!(" |")
+	    }
+	    let scope: u8 = ((row / 3) as u8) * 3 + (col / 3) as u8;
+	    let b_winner = small_winner(get_slice(board.brd, scope));
+	    let value = board.brd[row][col];
+	    if b_winner == 0 {
+		if value == 1 || value == 2 {
+		    print!(" X");
+		}
+		else if value == -1 || value == -2 {
+		    print!(" O");
+		}
+		else {
+		    print!(" _");
+		}
+	    }
+	    else {
+		if row > 0 && col > 0 && (row - 1) % 3 == 0 && (col - 1) % 3 == 0 {
+		    if board.brd[row][col] == 0 {
+			print!(" _");
+		    }
+		    else {
+			if b_winner == 1 {
+			    print!(" X");
+			}
+			else {
+			    print!(" O");
+			}
+		    }
+		}
+		else {
+		    if board.brd[(((row / 3) as u8) * 3 + 1) as usize][(((col / 3) as u8) * 3 + 1) as usize] == 0 {
 			if value == 0 {
 			    print!(" _");
 			}
@@ -679,7 +747,7 @@ fn is_full(board: [[i8; 3]; 3]) -> bool {
     return true;
 }
 
-fn domove(board: Board, pindex: u8) -> usize {
+fn domove(board: &Board, pindex: u8) -> usize {
     if board.player == 1 {
 	let mut veccount: usize = 0;
 	for row in 0..3 {

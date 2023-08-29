@@ -30,32 +30,35 @@ impl Board {
 
 pub fn updatepred(db: &mut Vec<Board>, curindex: usize) -> usize {
     let cpboard = db[curindex].clone();
-    if cpboard.player == 1 {
-	// get max rating from children
-	let mut maxrate: Option<f32> = None;
-	let mut maxindex: usize = 0;
-	for i in 0..cpboard.children.len() {
-	    if maxrate == None || db[cpboard.children[i]].prediction > maxrate {
-		maxrate = db[cpboard.children[i]].prediction;
-		maxindex = i as usize;
+    if cpboard.children.len() > 0 {
+	if cpboard.player == 1 {
+	    // get max rating from children
+	    let mut maxrate: Option<f32> = None;
+	    let mut maxindex: usize = 0;
+	    for i in 0..cpboard.children.len() {
+		if maxrate == None || db[cpboard.children[i]].prediction > maxrate {
+		    maxrate = db[cpboard.children[i]].prediction;
+		    maxindex = i as usize;
+		}
 	    }
+	    db[curindex].prediction = maxrate;
+	    return maxindex;
 	}
-	db[curindex].prediction = maxrate;
-	return maxindex;
-    }
-    else {
-	// get min rating from children
-	let mut minrate: Option<f32> = None;
-	let mut minindex: usize = 0;
-	for i in 0..cpboard.children.len() {
-	    if minrate == None || db[cpboard.children[i]].prediction > minrate {
-		minrate = db[cpboard.children[i]].prediction;
-		minindex = i as usize;
+	else {
+	    // get min rating from children
+	    let mut minrate: Option<f32> = None;
+	    let mut minindex: usize = 0;
+	    for i in 0..cpboard.children.len() {
+		if (!((small_winner(get_slice(cpboard.brd, cpboard.scope)) != 0) && (loopstuck(&db, curindex, i)))) && (minrate == None || db[cpboard.children[i]].prediction > minrate) {
+		    minrate = db[cpboard.children[i]].prediction;
+		    minindex = i as usize;
+		}
 	    }
+	    db[curindex].prediction = minrate;
+	    return minindex;
 	}
-	db[curindex].prediction = minrate;
-	return minindex;
     }
+    return 0;
 }
 
 fn write_board(board: [[i8; 9]; 9], outfile: &mut File) {
@@ -125,7 +128,7 @@ pub fn play(starter: Board) {
 	    }
 	}
 	else {
-	    unsafe{CURINDEX = domove(board, getcpmove(&mut DB, CURINDEX, DB.last().unwrap().movenum - 1));}
+	    unsafe{CURINDEX = domove(board, getcpmove(&mut DB, CURINDEX, Some(DB.last().unwrap().movenum - 1)));}
 	}
     }
     print_board(unsafe{DB[CURINDEX].brd});
@@ -184,7 +187,7 @@ pub fn buildtree() {
 				newbrd.prediction = Some(rate_board(newbrd.brd));
 				let dblength = database.len() as usize;
 				database[index].children.push(dblength);
-				database.push(newbrd);
+				database.push(newbrd.clone());
 			    }
 			}
 		    }
@@ -194,7 +197,7 @@ pub fn buildtree() {
 	let mut curin = 0;
 	while unsafe {DB.len()} > curin {
 	    let thisboard = unsafe{DB[curin].clone()};
-	    if !thisboard.obselete(unsafe{&DB}, unsafe{CURINDEX}) {
+	    if !thisboard.obselete(unsafe{&DB}, unsafe{CURINDEX}) && thisboard.children.len() == 0 {
 		tryall(unsafe {&mut DB}, curin);
 	    }
 	    curin += 1;
@@ -695,27 +698,30 @@ fn domove(board: Board, pindex: u8) -> usize {
     }
 }
 
-pub fn getcpmove(db: &mut Vec<Board>, curindex: usize, maxdepth: u8) -> u8 {
+pub fn getcpmove(db: &mut Vec<Board>, curindex: usize, maxdepth: Option<u8>) -> u8 {
     for child in 0..db[curindex].children.len() {
 	let newindex = db[curindex].children[child];
 	calcmove(&mut *db, newindex, maxdepth);
     }
+    let haswon = small_winner(get_slice(db[curindex].brd, db[curindex].scope)) != 0;
     let mut minindex: u8 = 0;
-    let mut minrating: Option<f32> = db[db[curindex].children[minindex as usize]].prediction;
-    for child in 1..db[curindex].children.len() {
-	let childrating = db[db[curindex].children[child]].prediction.unwrap();
+    let mut minrating: Option<f32> = None;
+    for childnum in 0..db[curindex].children.len() {
+	let child = &db[db[curindex].children[childnum]];
+	let childrating = child.prediction.unwrap();
 	// print!(", {}", childrating);
-	if childrating < minrating.unwrap() {
+	let isloop = !(haswon && (loopstuck(&db, curindex, childnum)));
+	if isloop && (minrating == None || childrating < minrating.unwrap()) {
 	    minrating = Some(childrating);
-	    minindex = child as u8;
+	    minindex = childnum as u8;
 	}
     }
     println!("Computer is moving towards a board with rating {}", minrating.unwrap());
     return minindex;
 }
 
-fn calcmove(db: &mut Vec<Board>, curindex: usize, maxdepth: u8) {
-    if db[curindex].movenum == maxdepth {
+fn calcmove(db: &mut Vec<Board>, curindex: usize, maxdepth: Option<u8>) {
+    if maxdepth.is_some() && db[curindex].movenum == maxdepth.unwrap() {
 	return;
     }
     else {
@@ -723,6 +729,19 @@ fn calcmove(db: &mut Vec<Board>, curindex: usize, maxdepth: u8) {
 	    let newindex = db[curindex].children[child];
 	    calcmove(&mut *db, newindex, maxdepth);
 	}
-	updatepred(&mut *db, curindex);
+	if !db[curindex].children.len() > 0 {
+	    updatepred(&mut *db, curindex);
+	}
     }
+}
+
+fn loopstuck(db: &Vec<Board>, curindex: usize, child: usize) -> bool {
+    let stuckboard = db[curindex].scope;
+    let grandchildren = &db[db[curindex].children[child]].children;
+    for grandchild in 0..grandchildren.len() {
+	if db[grandchildren[grandchild]].scope == stuckboard {
+	    return true;
+	}
+    }
+    return false;
 }

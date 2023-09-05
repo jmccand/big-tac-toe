@@ -8,8 +8,6 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let contents = fs::read_to_string(args[1].clone()).unwrap();
     let rawboard = parse_board(contents);
-    main::print_board(rawboard);
-    println!("original board rating: {}", main::rate_board(rawboard));
     let starter = main::Board {
 	brd: rawboard,
 	scope: 1,
@@ -19,6 +17,8 @@ fn main() {
 	children: Vec::new(),
 	prediction: Some(main::rate_board(rawboard)),
     };
+    main::print_board(&starter);
+    println!("original board rating: {}", main::rate_board(rawboard));
     unsafe{main::DB.push(starter);}
     println!("building tree");
     main::buildtree();
@@ -59,7 +59,7 @@ fn parse_board(contents: String) -> [[i8; 9]; 9] {
 
 fn show_comparison(mut db: &mut Vec<main::Board>, curindex: usize, depth: u8) {
     if db[curindex].movenum == depth {
-	main::print_board(db[curindex].brd);
+	main::print_board(&db[curindex]);
 	println!("Rating: {}", main::rate_board(db[curindex].brd));
 	return;
     }

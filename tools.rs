@@ -11,7 +11,7 @@ fn main() {
     let rawboard = parse_board(contents);
     let starter = main::Board {
 	brd: rawboard,
-	scope: 8,
+	scope: 6,
 	player: -1,
 	movenum: 0,
 	parent: None,
@@ -73,6 +73,8 @@ fn show_comparison(mut db: &mut Vec<main::Board>, curindex: usize, depth: u8) {
     else {
 	let thisboard = db[curindex].clone();
 	let predchild = main::updatepred(&mut *db, curindex);
-	show_comparison(db, thisboard.children[predchild], depth);
+	if thisboard.children.len() > 0 {
+	    show_comparison(db, thisboard.children[predchild], depth);
+	}
     }
 }

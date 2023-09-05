@@ -633,8 +633,12 @@ fn rate_ratings(winners: [[i8; 3]; 3], ratings: [[i32; 3]; 3]) -> f32 {
 	    }
 	}
 	if counts[0] < 1.0 || counts[1] < 1.0 {
-	    total += counts[0] * counts[0];
-	    total -= counts[1] * counts[1];
+	    if counts[1] < 1.0 {
+		total += counts[0] * (1.0 - counts[1]);
+	    }
+	    else {
+		total -= counts[1] * (1.0 - counts[0]);
+	    }
 	}
     }
     // check cols
@@ -665,8 +669,12 @@ fn rate_ratings(winners: [[i8; 3]; 3], ratings: [[i32; 3]; 3]) -> f32 {
 	    }
 	}
 	if counts[0] < 1.0 || counts[1] < 1.0 {
-	    total += counts[0] * counts[0];
-	    total -= counts[1] * counts[1];
+	    if counts[1] < 1.0 {
+		total += counts[0] * (1.0 - counts[1]);
+	    }
+	    else {
+		total -= counts[1] * (1.0 - counts[0]);		    
+	    }
 	}
     }
     // check diag
@@ -697,8 +705,12 @@ fn rate_ratings(winners: [[i8; 3]; 3], ratings: [[i32; 3]; 3]) -> f32 {
 	    }
 	}
 	if counts[0] < 1.0 || counts[1] < 1.0 {
-	    total += counts[0] * counts[0];
-	    total -= counts[1] * counts[1];
+	    if counts[1] < 1.0 {
+		total += counts[0] * (1.0 - counts[1]);
+	    }
+	    else {
+		total -= counts[1] * (1.0 - counts[0]);		    
+	    }
 	}
     }
     // check diag
@@ -729,8 +741,12 @@ fn rate_ratings(winners: [[i8; 3]; 3], ratings: [[i32; 3]; 3]) -> f32 {
 	    }
 	}
 	if counts[0] < 1.0 || counts[1] < 1.0 {
-	    total += counts[0] * counts[0];
-	    total -= counts[1] * counts[1];
+	    if counts[1] < 1.0 {
+		total += counts[0] * (1.0 - counts[1]);
+	    }
+	    else {
+		total -= counts[1] * (1.0 - counts[0]);		    
+	    }
 	}
     }
     return total;

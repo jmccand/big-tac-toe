@@ -48,12 +48,16 @@ pub fn updatepred(db: &mut Vec<Board>, curindex: usize) -> usize {
 	    // get min rating from children
 	    let mut minrate: Option<f32> = None;
 	    let mut minindex: usize = 0;
+	    let onwon = small_winner(get_slice(cpboard.brd, cpboard.scope)) != 0;
 	    for i in 0..cpboard.children.len() {
-		if (!((small_winner(get_slice(cpboard.brd, cpboard.scope)) != 0) && (loopstuck(&db, curindex, i)))) && (minrate == None || db[cpboard.children[i]].prediction > minrate) {
+		let child = &db[cpboard.children[i]];
+		let nextwon = small_winner(get_slice(child.brd, child.scope)) != 0;
+		if !(onwon && loopstuck(&db, curindex, i) && (!nextwon)) && (minrate == None || child.prediction > minrate) {
 		    minrate = db[cpboard.children[i]].prediction;
 		    minindex = i as usize;
 		}
 	    }
+	    minrate = db[cpboard.children[0]].prediction;
 	    db[curindex].prediction = minrate;
 	    return minindex;
 	}
@@ -794,8 +798,9 @@ pub fn getcpmove(db: &mut Vec<Board>, curindex: usize, maxdepth: Option<u8>) -> 
 	let child = &db[db[curindex].children[childnum]];
 	let childrating = child.prediction.unwrap();
 	// print!(", {}", childrating);
-	let isloop = !(haswon && (loopstuck(&db, curindex, childnum)));
-	if isloop && (minrating == None || childrating < minrating.unwrap()) {
+	let isloop = haswon && (loopstuck(&db, curindex, childnum));
+	let nextwon = small_winner(get_slice(child.brd, child.scope)) != 0;
+	if !(isloop && !nextwon) && (minrating == None || childrating < minrating.unwrap()) {
 	    minrating = Some(childrating);
 	    minindex = childnum as u8;
 	}

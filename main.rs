@@ -57,7 +57,6 @@ pub fn updatepred(db: &mut Vec<Board>, curindex: usize) -> usize {
 		    minindex = i as usize;
 		}
 	    }
-	    minrate = db[cpboard.children[0]].prediction;
 	    db[curindex].prediction = minrate;
 	    return minindex;
 	}

@@ -49,10 +49,19 @@ pub fn updatepred(db: &mut Vec<Board>, curindex: usize) -> usize {
 	    let mut minrate: Option<f32> = None;
 	    let mut minindex: usize = 0;
 	    let onwon = small_winner(get_slice(cpboard.brd, cpboard.scope)) != 0;
+	    let mut allLoop = true;
 	    for i in 0..cpboard.children.len() {
 		let child = &db[cpboard.children[i]];
 		let nextwon = small_winner(get_slice(child.brd, child.scope)) != 0;
-		if !(onwon && loopstuck(&db, curindex, i) && (!nextwon)) && (minrate == None || child.prediction > minrate) {
+		if !(onwon && loopstuck(&db, curindex, i) && (!nextwon)) {
+		    allLoop = false;
+		    break;
+		}
+	    }
+	    for i in 0..cpboard.children.len() {
+		let child = &db[cpboard.children[i]];
+		let nextwon = small_winner(get_slice(child.brd, child.scope)) != 0;
+		if (allLoop || !(onwon && loopstuck(&db, curindex, i) && (!nextwon))) && (minrate == None || child.prediction > minrate) {
 		    minrate = db[cpboard.children[i]].prediction;
 		    minindex = i as usize;
 		}
@@ -793,13 +802,22 @@ pub fn getcpmove(db: &mut Vec<Board>, curindex: usize, maxdepth: Option<u8>) -> 
     let haswon = small_winner(get_slice(db[curindex].brd, db[curindex].scope)) != 0;
     let mut minindex: u8 = 0;
     let mut minrating: Option<f32> = None;
+    let mut allLoop = true;
+    for childnum in 0..db[curindex].children.len() {
+	let child = &db[db[curindex].children[childnum]];
+	let isloop = haswon && (loopstuck(&db, curindex, childnum));
+	let nextwon = small_winner(get_slice(child.brd, child.scope)) != 0;
+	if !(isloop && !nextwon) {
+	    allLoop = false;
+	}
+    }
     for childnum in 0..db[curindex].children.len() {
 	let child = &db[db[curindex].children[childnum]];
 	let childrating = child.prediction.unwrap();
 	// print!(", {}", childrating);
 	let isloop = haswon && (loopstuck(&db, curindex, childnum));
 	let nextwon = small_winner(get_slice(child.brd, child.scope)) != 0;
-	if !(isloop && !nextwon) && (minrating == None || childrating < minrating.unwrap()) {
+	if (allLoop || !(isloop && !nextwon)) && (minrating == None || childrating < minrating.unwrap()) {
 	    minrating = Some(childrating);
 	    minindex = childnum as u8;
 	}

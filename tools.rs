@@ -5,13 +5,13 @@ mod main;
 
 
 fn main() {
-    let lookahead = 6;
     let args: Vec<String> = env::args().collect();
+    let lookahead = args[3].parse().unwrap();
     let contents = fs::read_to_string(args[1].clone()).unwrap();
     let rawboard = parse_board(contents);
     let starter = main::Board {
 	brd: rawboard,
-	scope: 6,
+	scope: args[2].parse::<u8>().unwrap(),
 	player: -1,
 	movenum: 0,
 	parent: None,

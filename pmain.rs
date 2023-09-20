@@ -534,7 +534,21 @@ fn rate_board(board: [[i8; 9]; 9]) -> f32 {
     for row in 0..3 {
 	for col in 0..3 {
 	    let slice = get_slice(board, (row * 3 + col) as u8);
-	    (cprobs[row][col], hprobs[row][col]) = winprob(prob_convert(slice));
+	    let swinner = small_winner(slice);
+	    if swinner == 0 {
+		(cprobs[row][col], hprobs[row][col]) = winprob(prob_convert(slice));
+	    }
+	    else if swinner == 1 {
+		cprobs[row][col] = 1.0;
+		hprobs[row][col] = 0.0;
+	    }
+	    else if swinner == -1 {
+		cprobs[row][col] = 0.0;
+		hprobs[row][col] = 1.0;
+	    }
+	    else {
+		println!("INVALID SMALL WINNER IN RATE BOARD!");
+	    }
 	}
     }
     let cprob = winprob(cprobs).0;

@@ -3,6 +3,7 @@ use std::fs::File;
 use std::vec::Vec;
 use std::thread;
 
+// store a board node in the tree
 #[derive(Clone, Debug)]
 pub struct Board {
     pub brd: [[i8; 9]; 9],
@@ -14,10 +15,13 @@ pub struct Board {
     pub prediction: Option<f32>,
 }
 
+// DB: store boards
+// CURINDEX: store current board
 pub static mut DB: Vec<Board> = Vec::new();
 pub static mut CURINDEX: usize = 0;
 
 impl Board {
+    // check if a board in the tree is not reachable given the game state
     fn obselete(&self, db: &Vec<Board>, curindex: usize) -> bool {
 	let ogboard = &db[curindex];
 	let mut thisboard = self;
@@ -28,6 +32,8 @@ impl Board {
     }
 }
 
+// update the prediction rating of this board to be max/min of children
+// depending on who's turn it is
 pub fn updatepred(db: &mut Vec<Board>, curindex: usize) -> usize {
     let cpboard = db[curindex].clone();
     if cpboard.children.len() > 0 {
@@ -73,6 +79,7 @@ pub fn updatepred(db: &mut Vec<Board>, curindex: usize) -> usize {
     return 0;
 }
 
+// write a board to a file for storing and later debug (or potentially game recovery!)
 fn write_board(board: [[i8; 9]; 9], outfile: &mut File) {
     outfile.write(b"\n[").expect("failed to write file");
     for row in 0..9 {
@@ -96,27 +103,21 @@ fn write_board(board: [[i8; 9]; 9], outfile: &mut File) {
 }
 
 fn main() {
-    print!("Welcome to Big Tac Toe! Enter the number of players: ");
-    let s = input();
-    if s == "1" {
-	let starter = Board {
-	    brd: [[0; 9]; 9],
-	    scope: 1,
-	    player: 1,
-	    movenum: 0,
-	    children: Vec::new(),
-	    parent: None,
-	    prediction: None,
-	};
-	println!("Welcome to 1 player Big Tac Toe!");
-	play(starter);
-    }
-    else if s == "2" {
-	println!("Welcome to 2 player Big Tac Toe!");
-	twoplayer();
-    }
+    print!("Welcome to AI Big Tac Toe!");
+    let starter = Board {
+	brd: [[0; 9]; 9],
+	scope: 1,
+	player: 1,
+	movenum: 0,
+	children: Vec::new(),
+	parent: None,
+	prediction: None,
+    };
+    println!("Welcome to 1 player Big Tac Toe!");
+    play(starter);
 }
 
+// play the game 1 player
 pub fn play(starter: Board) {
     let mut game_history = File::create("game_history.txt").expect("failed to open file");
     // thread that builds the decision tree
@@ -153,6 +154,7 @@ pub fn play(starter: Board) {
     println!("won. Thank you for playing!");
 }
 
+// build the board tree
 pub fn buildtree() {
     thread::spawn(|| {
 	fn tryall(database: &mut Vec<Board>, index: usize) {
@@ -218,43 +220,7 @@ pub fn buildtree() {
     });
 }    
 
-fn twoplayer() {
-    let mut board: [[i8; 9]; 9] = [[0; 9]; 9];
-    let mut scope = 4;
-    let mut player = 1;
-    while winner(board) == 0 {
-	raw_print_board(board);
-	if player == 1 {
-	    print!("Player 1");
-	}
-	else {
-	    print!("Player 2");
-	}
-	print!(", you are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your ", scope);
-	if player == 1 {
-	    print!("X: ");
-	}
-	else {
-	    print!("O: ");
-	}
-	let s = input();
-	let p = s.parse::<u8>().unwrap();
-	if p < 9 {
-	    place(&mut board, player, scope, p);
-	    player *= -1;
-	    scope = p;
-	}
-    }
-    raw_print_board(board);
-    if winner(board) == 1 {
-	print!("Player 1 ");
-    }
-    else {
-	print!("Player 2 ");
-    }
-    println!("won. Thank you for playing!");
-}    
-
+// get user input in String type
 fn input() -> String {
     let mut s = String::new();
     let _=stdout().flush();
@@ -268,6 +234,7 @@ fn input() -> String {
     return s;
 }
 
+// place an X or O on a board
 fn place(board: &mut [[i8; 9]; 9], player: i8, scope: u8, p: u8) {
     let p_round: u8 = p / 3;
     let mut scope_round: u8 = scope / 3;
@@ -285,6 +252,7 @@ fn place(board: &mut [[i8; 9]; 9], player: i8, scope: u8, p: u8) {
     }
 }
 
+// get an entry given the scope and the local index
 fn get(board: [[i8; 9]; 9], scope: u8, p: u8) -> i8 {
     let p_round: u8 = p / 3;
     let mut scope_round: u8 = scope / 3;
@@ -294,6 +262,7 @@ fn get(board: [[i8; 9]; 9], scope: u8, p: u8) -> i8 {
     return board[r as usize][c as usize];
 }
 
+// get a 3x3 sub-board of the 9x9 full board ("slice")
 fn get_slice(board: [[i8; 9]; 9], scope: u8) -> [[i8; 3]; 3] {
     let mut slice = [[0; 3]; 3];
     for row in 0..3 {
@@ -304,74 +273,7 @@ fn get_slice(board: [[i8; 9]; 9], scope: u8) -> [[i8; 3]; 3] {
     return slice;
 }
 
-fn raw_print_board(board: [[i8; 9]; 9]) {
-    println!();
-    for row in 0..9 {
-	if row % 3 == 0 && row != 0 {
-	    println!("{}", "-".repeat(23));
-	}
-	for col in 0..9 {
-	    if col % 3 == 0 && col != 0 {
-		print!(" |")
-	    }
-	    let scope: u8 = ((row / 3) as u8) * 3 + (col / 3) as u8;
-	    let b_winner = small_winner(get_slice(board, scope));
-	    let value = board[row][col];
-	    if b_winner == 0 {
-		if value == 1 || value == 2 {
-		    print!(" X");
-		}
-		else if value == -1 || value == -2 {
-		    print!(" O");
-		}
-		else {
-		    print!(" _");
-		}
-	    }
-	    else {
-		if row > 0 && col > 0 && (row - 1) % 3 == 0 && (col - 1) % 3 == 0 {
-		    if board[row][col] == 0 {
-			print!(" _");
-		    }
-		    else {
-			if b_winner == 1 {
-			    print!(" X");
-			}
-			else {
-			    print!(" O");
-			}
-		    }
-		}
-		else {
-		    if board[(((row / 3) as u8) * 3 + 1) as usize][(((col / 3) as u8) * 3 + 1) as usize] == 0 {
-			if value == 0 {
-			    print!(" _");
-			}
-			else {
-			    if value == 1 {
-				print!(" X");
-			    }
-			    else {
-				print!(" O");
-			    }
-			}
-		    }
-		    else {
-			if value == 0 {
-			    print!(" _");
-			}
-			else {
-			    print!(" *");
-			}
-		    }
-		}
-	    }
-	}
-	println!();
-    }
-    println!();
-}
-
+// print a board so the player can see or for debug
 pub fn print_board(board: &Board) {
     println!();
     for row in 0..9 {
@@ -440,6 +342,7 @@ pub fn print_board(board: &Board) {
     println!();
 }
 
+// check if there is a full board winner
 fn winner(board: [[i8; 9]; 9]) -> i8 {
     let mut winners: [[i8; 3]; 3] = [[0; 3]; 3];
     for b_row in 0..3 {
@@ -451,6 +354,7 @@ fn winner(board: [[i8; 9]; 9]) -> i8 {
     return small_winner(winners);
 }
 
+// check if there is a 3x3 board winner
 fn small_winner(board: [[i8; 3]; 3]) -> i8 {
     // check rows
     for row in 0..3 {
@@ -528,6 +432,7 @@ fn small_winner(board: [[i8; 3]; 3]) -> i8 {
     return 0;
 }
 
+// rate a board by "pseudo-probability"
 fn rate_board(board: [[i8; 9]; 9]) -> f32 {
     let mut cprobs: [[f32; 3]; 3] = [[0.0; 3]; 3];
     let mut hprobs: [[f32; 3]; 3] = [[0.0; 3]; 3];
@@ -561,7 +466,10 @@ fn rate_board(board: [[i8; 9]; 9]) -> f32 {
     }
 }
 
+// rate the probability of winning on a 3x3 board by "pseudo-probability"
 fn winprob(pboard: [[f32; 3]; 3]) -> (f32, f32) {
+    // these vectors store 3 entries in a row and
+    // the associated probability of getting that row
     let mut cprobs: Vec<(usize, usize, usize, f32)> = Vec::new();
     let mut hprobs: Vec<(usize, usize, usize, f32)> = Vec::new();
 
@@ -600,6 +508,7 @@ fn winprob(pboard: [[f32; 3]; 3]) -> (f32, f32) {
     return (ctotal, htotal);
 }
 
+// find the max probability of winning out of a vector
 fn maxenum(v: &Vec<(usize, usize, usize, f32)>) -> (usize, f32) {
     let mut maxi = 0;
     let mut maxv = 0.0;
@@ -612,12 +521,14 @@ fn maxenum(v: &Vec<(usize, usize, usize, f32)>) -> (usize, f32) {
     return (maxi, maxv);
 }
 
+// determine if the two rows/cols share any squares (dependent probability)
 fn intersect(tup1: (usize, usize, usize, f32), tup2: (usize, usize, usize, f32)) -> bool {
     return tup1.0 == tup2.0 || tup1.0 == tup2.1 || tup1.0 == tup2.2 ||
 	tup1.1 == tup2.0 || tup1.1 == tup2.1 || tup1.1 == tup2.2 ||
 	tup1.2 == tup2.0 || tup2.0 == tup2.1 || tup2.0 == tup2.2;
 }
 
+// filter the vector by whether they are affected by change in one row/col's probability
 fn filtervec(tup: (usize, usize, usize, f32), v: &mut Vec<(usize, usize, usize, f32)>) {
     let mut index: usize = 0;
     while index < v.len() {
@@ -630,6 +541,7 @@ fn filtervec(tup: (usize, usize, usize, f32), v: &mut Vec<(usize, usize, usize, 
     }
 }
 
+// convert the board to a pseudo-probability board
 fn prob_convert(board: [[i8; 3]; 3]) -> [[f32; 3]; 3] {
     let mut toreturn: [[f32; 3]; 3] = [[0.0; 3]; 3];
     for row in 0..3 {
@@ -645,6 +557,7 @@ fn prob_convert(board: [[i8; 3]; 3]) -> [[f32; 3]; 3] {
     return toreturn;
 }
 
+// check if the board is full
 fn is_full(board: [[i8; 3]; 3]) -> bool {
     for row in 0..3 {
 	for col in 0..3 {
@@ -656,6 +569,7 @@ fn is_full(board: [[i8; 3]; 3]) -> bool {
     return true;
 }
 
+// try all of the possibilities for this move
 fn domove(board: &Board, pindex: u8) -> usize {
     if board.player == 1 {
 	let mut veccount: usize = 0;
@@ -675,6 +589,7 @@ fn domove(board: &Board, pindex: u8) -> usize {
     }
 }
 
+// get the computer's optimal move at this instant
 pub fn getcpmove(db: &mut Vec<Board>, curindex: usize, maxdepth: Option<u8>) -> u8 {
     for child in 0..db[curindex].children.len() {
 	let newindex = db[curindex].children[child];
@@ -707,6 +622,7 @@ pub fn getcpmove(db: &mut Vec<Board>, curindex: usize, maxdepth: Option<u8>) -> 
     return minindex;
 }
 
+// calculate the optimal move (recursive)
 fn calcmove(db: &mut Vec<Board>, curindex: usize, maxdepth: Option<u8>) {
     if maxdepth.is_some() && db[curindex].movenum == maxdepth.unwrap() {
 	return;
@@ -722,6 +638,8 @@ fn calcmove(db: &mut Vec<Board>, curindex: usize, maxdepth: Option<u8>) {
     }
 }
 
+// determine if the computer is stuck in a loop
+// where it is always sent to the same board
 fn loopstuck(db: &Vec<Board>, curindex: usize, child: usize) -> bool {
     let stuckboard = db[curindex].scope;
     let grandchildren = &db[db[curindex].children[child]].children;

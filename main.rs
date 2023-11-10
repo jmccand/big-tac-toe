@@ -49,19 +49,19 @@ pub fn updatepred(db: &mut Vec<Board>, curindex: usize) -> usize {
 	    let mut minrate: Option<f32> = None;
 	    let mut minindex: usize = 0;
 	    let onwon = small_winner(get_slice(cpboard.brd, cpboard.scope)) != 0;
-	    let mut allLoop = true;
+	    let mut all_loop = true;
 	    for i in 0..cpboard.children.len() {
 		let child = &db[cpboard.children[i]];
 		let nextwon = small_winner(get_slice(child.brd, child.scope)) != 0;
 		if !(onwon && loopstuck(&db, curindex, i) && (!nextwon)) {
-		    allLoop = false;
+		    all_loop = false;
 		    break;
 		}
 	    }
 	    for i in 0..cpboard.children.len() {
 		let child = &db[cpboard.children[i]];
 		let nextwon = small_winner(get_slice(child.brd, child.scope)) != 0;
-		if (allLoop || !(onwon && loopstuck(&db, curindex, i) && (!nextwon))) && (minrate == None || child.prediction > minrate) {
+		if (all_loop || !(onwon && loopstuck(&db, curindex, i) && (!nextwon))) && (minrate == None || child.prediction > minrate) {
 		    minrate = db[cpboard.children[i]].prediction;
 		    minindex = i as usize;
 		}
@@ -528,240 +528,121 @@ fn small_winner(board: [[i8; 3]; 3]) -> i8 {
     return 0;
 }
 
-pub fn rate_board(board: [[i8; 9]; 9]) -> f32 {
-    let mut total = 0.0;
-    let mut ratings: [[i32; 3]; 3] = [[0; 3]; 3];
-    let mut winners: [[i8; 3]; 3] = [[0; 3]; 3];
-    for b_row in 0..3 {
-	for b_col in 0..3 {
-	    let slice = get_slice(board, (3*b_row + b_col) as u8);
-	    ratings[b_row][b_col] = rate_small(slice);
-	    winners[b_row][b_col] = small_winner(slice);
-	    total += rate_small(slice) as f32;
+fn rate_board(board: [[i8; 9]; 9]) -> f32 {
+    let mut cprobs: [[f32; 3]; 3] = [[0.0; 3]; 3];
+    let mut hprobs: [[f32; 3]; 3] = [[0.0; 3]; 3];
+    for row in 0..3 {
+	for col in 0..3 {
+	    let slice = get_slice(board, (row * 3 + col) as u8);
+	    let swinner = small_winner(slice);
+	    if swinner == 0 {
+		(cprobs[row][col], hprobs[row][col]) = winprob(prob_convert(slice));
+	    }
+	    else if swinner == 1 {
+		cprobs[row][col] = 1.0;
+		hprobs[row][col] = 0.0;
+	    }
+	    else if swinner == -1 {
+		cprobs[row][col] = 0.0;
+		hprobs[row][col] = 1.0;
+	    }
+	    else {
+		println!("INVALID SMALL WINNER IN RATE BOARD!");
+	    }
 	}
     }
-    let overall_rating = rate_ratings(winners, ratings);
-    total += overall_rating * 12.0;
-    return total;
+    let cprob = winprob(cprobs).0;
+    let hprob = winprob(hprobs).0;
+    if cprob == 1.0 {
+	return cprob;
+    }
+    else {
+	return cprob * (1.0 - hprob);
+    }
 }
 
-fn rate_small(board: [[i8; 3]; 3]) -> i32 {
-    let mut total: i32 = 0;
-    // check rows  
+fn winprob(pboard: [[f32; 3]; 3]) -> (f32, f32) {
+    let mut cprobs: Vec<(usize, usize, usize, f32)> = Vec::new();
+    let mut hprobs: Vec<(usize, usize, usize, f32)> = Vec::new();
+
+    // rows
     for row in 0..3 {
-	let mut counts = [0; 2];
-	for col in 0..3 {
-	    if board[row][col] == 1 {
-		counts[0] += 1;
-	    }
-	    else if board[row][col] == -1 {
-		counts[1] += 1;
-	    }
-	}
-	// row is useless if blocked
-	if counts[0] == 0 || counts[1] == 0 {
-	    total += counts[0] * counts[0];
-	    total -= counts[1] * counts[1];
-	}
+	cprobs.push((0 + row * 3, 1 + row * 3, 2 + row * 3, pboard[row][0] * pboard[row][1] * pboard[row][2]));
+	hprobs.push((0 + row * 3, 1 + row * 3, 2 + row * 3, (1.0 - pboard[row][0]) * (1.0 - pboard[row][1]) * (1.0 - pboard[row][2])));
     }
-    // check cols
+    // cols
     for col in 0..3 {
-	let mut counts = [0; 2];
-	for row in 0..3 {
-	    if board[row][col] == 1 {
-		counts[0] += 1;
-	    }
-	    else if board[row][col] == -1 {
-		counts[1] += 1;
-	    }
-	}
-	// col is useless if blocked
-	if counts[0] == 0 || counts[1] == 0 {
-	    total += counts[0] * counts[0];
-	    total -= counts[1] * counts[1];
-	}
+	cprobs.push((col, col + 3, col + 6, pboard[0][col] * pboard[1][col] * pboard[2][col]));
+	hprobs.push((col, col + 3, col + 6, (1.0 - pboard[0][col]) * (1.0 - pboard[1][col]) * (1.0 - pboard[2][col])));
     }
-    // check diagonals
-    {
-	let mut counts = [0; 2];
-	for i in 0..3 {
-	    if board[i][i] == 1 {
-		counts[0] += 1;
-	    }
-	    else if board[i][i] == -1 {
-		counts[1] += 1;
-	    }
-	}
-	if counts[0] == 0 || counts[1] == 0 {
-	    total += counts[0] * counts[0];
-	    total -= counts[1] * counts[1];
-	}
+    // diag 1
+    cprobs.push((0, 4, 7, pboard[0][0] * pboard[1][1] * pboard[2][2]));
+    hprobs.push((0, 4, 7, (1.0 - pboard[0][0]) * (1.0 - pboard[1][1]) * (1.0 - pboard[2][2])));
+
+    // diag 2
+    cprobs.push((2, 4, 6, pboard[0][2] * pboard[1][1] * pboard[2][0]));
+    hprobs.push((2, 4, 6, (1.0 - pboard[0][2]) * (1.0 - pboard[1][1]) * (1.0 - pboard[2][0])));
+
+    let mut ctotal: f32 = 0.0;
+    while cprobs.len() > 0 {
+	let (mindex, mval) = maxenum(&cprobs);
+	ctotal += mval;
+	filtervec(cprobs[mindex].clone(), &mut cprobs);
     }
-    {
-	let mut counts = [0; 2];
-	for i in 0..3 {
-	    if board[i][2-i] == 1 {
-		counts[0] += 1;
-	    }
-	    else if board[i][2-i] == -1 {
-		counts[1] += 1;
-	    }
-	}
-	if counts[0] == 0 || counts[1] == 0 {
-	    total += counts[0] * counts[0];
-	    total -= counts[1] * counts[1];
-	}
+    
+    let mut htotal: f32 = 0.0;
+    while hprobs.len() > 0 {
+	let (mindex, mval) = maxenum(&hprobs);
+	htotal += mval;
+	filtervec(hprobs[mindex].clone(), &mut hprobs);
     }
-    return total;
+    
+    return (ctotal, htotal);
 }
 
-fn rate_ratings(winners: [[i8; 3]; 3], ratings: [[i32; 3]; 3]) -> f32 {
-    let mut total: f32 = 0.0;
-    // check rows
+fn maxenum(v: &Vec<(usize, usize, usize, f32)>) -> (usize, f32) {
+    let mut maxi = 0;
+    let mut maxv = 0.0;
+    for (index, &tup) in v.iter().enumerate() {
+	if tup.3 > maxv {
+	    maxv = tup.3;
+	    maxi = index;
+	}
+    }
+    return (maxi, maxv);
+}
+
+fn intersect(tup1: (usize, usize, usize, f32), tup2: (usize, usize, usize, f32)) -> bool {
+    return tup1.0 == tup2.0 || tup1.0 == tup2.1 || tup1.0 == tup2.2 ||
+	tup1.1 == tup2.0 || tup1.1 == tup2.1 || tup1.1 == tup2.2 ||
+	tup1.2 == tup2.0 || tup2.0 == tup2.1 || tup2.0 == tup2.2;
+}
+
+fn filtervec(tup: (usize, usize, usize, f32), v: &mut Vec<(usize, usize, usize, f32)>) {
+    let mut index: usize = 0;
+    while index < v.len() {
+	if intersect(tup, v[index]) {
+	    v.remove(index);
+	}
+	else {
+	    index += 1;
+	}
+    }
+}
+
+fn prob_convert(board: [[i8; 3]; 3]) -> [[f32; 3]; 3] {
+    let mut toreturn: [[f32; 3]; 3] = [[0.0; 3]; 3];
     for row in 0..3 {
-	let mut counts = [0.0; 2];
 	for col in 0..3 {
-	    if winners[row][col] > 0 {
-		counts[0] += 1.0;
-	    }
-	    else if winners[row][col] < 0 {
-		counts[1] -= -1.0;
-	    }
-	    else if ratings[row][col] > 0 {
-		if ratings[row][col] >= 9 {
-		    counts[0] += 1.0;
-		}
-		else {
-		    counts[0] += ratings[row][col] as f32 / 9.0;
-		}
-	    }
-	    else if ratings[row][col] < 0 {
-		if ratings[row][col] <= -9 {
-		    counts[1] -= -1.0;
-		}
-		else {
-		    counts[1] -= ratings[row][col] as f32 / 9.0;
-		}
-	    }
-	}
-	if counts[0] < 1.0 || counts[1] < 1.0 {
-	    if counts[1] < 1.0 {
-		total += counts[0] * (1.0 - counts[1]);
-	    }
-	    else {
-		total -= counts[1] * (1.0 - counts[0]);
+	    toreturn[row][col] = match board[row][col] {
+		1  => 0.0,
+		0 => 0.5,
+		-1 => 1.0,
+		_ => -1.0,
 	    }
 	}
     }
-    // check cols
-    for col in 0..3 {
-	let mut counts = [0.0; 2];
-	for row in 0..3 {
-	    if winners[row][col] > 0 {
-		counts[0] += 1.0;
-	    }
-	    else if winners[row][col] < 0 {
-		counts[1] -= -1.0;
-	    }
-	    else if ratings[row][col] > 0 {
-		if ratings[row][col] >= 9 {
-		    counts[0] += 1.0;
-		}
-		else {
-		    counts[0] += ratings[row][col] as f32 / 9.0;
-		}
-	    }
-	    else if ratings[row][col] < 0 {
-		if ratings[row][col] <= -9 {
-		    counts[1] -= -1.0;
-		}
-		else {
-		    counts[1] -= ratings[row][col] as f32 / 9.0;
-		}
-	    }
-	}
-	if counts[0] < 1.0 || counts[1] < 1.0 {
-	    if counts[1] < 1.0 {
-		total += counts[0] * (1.0 - counts[1]);
-	    }
-	    else {
-		total -= counts[1] * (1.0 - counts[0]);		    
-	    }
-	}
-    }
-    // check diag
-    {
-	let mut counts = [0.0; 2];
-	for diag in 0..3 {
-	    if winners[diag][diag] > 0 {
-		counts[0] += 1.0;
-	    }
-	    else if winners[diag][diag] < 0 {
-		counts[1] -= -1.0;
-	    }
-	    else if ratings[diag][diag] > 0 {
-		if ratings[diag][diag] >= 9 {
-		    counts[0] += 1.0;
-		}
-		else {
-		    counts[0] += ratings[diag][diag] as f32 / 9.0;
-		}
-	    }
-	    else if ratings[diag][diag] < 0 {
-		if ratings[diag][diag] <= -9 {
-		    counts[1] -= -1.0;
-		}
-		else {
-		    counts[1] -= ratings[diag][diag] as f32 / 9.0;
-		}
-	    }
-	}
-	if counts[0] < 1.0 || counts[1] < 1.0 {
-	    if counts[1] < 1.0 {
-		total += counts[0] * (1.0 - counts[1]);
-	    }
-	    else {
-		total -= counts[1] * (1.0 - counts[0]);		    
-	    }
-	}
-    }
-    // check diag
-    {
-	let mut counts = [0.0; 2];
-	for diag in 0..3 {
-	    if winners[diag][2 - diag] > 0 {
-		counts[0] += 1.0;
-	    }
-	    else if winners[diag][2 - diag] < 0 {
-		counts[1] -= -1.0;
-	    }
-	    else if ratings[diag][2 - diag] > 0 {
-		if ratings[diag][2 - diag] >= 9 {
-		    counts[0] += 1.0;
-		}
-		else {
-		    counts[0] += ratings[diag][2 - diag] as f32 / 9.0;
-		}
-	    }
-	    else if ratings[diag][2 - diag] < 0 {
-		if ratings[diag][2 - diag] <= -9 {
-		    counts[1] -= -1.0;
-		}
-		else {
-		    counts[1] -= ratings[diag][2 - diag] as f32 / 9.0;
-		}
-	    }
-	}
-	if counts[0] < 1.0 || counts[1] < 1.0 {
-	    if counts[1] < 1.0 {
-		total += counts[0] * (1.0 - counts[1]);
-	    }
-	    else {
-		total -= counts[1] * (1.0 - counts[0]);		    
-	    }
-	}
-    }
-    return total;
+    return toreturn;
 }
 
 fn is_full(board: [[i8; 3]; 3]) -> bool {
@@ -802,13 +683,13 @@ pub fn getcpmove(db: &mut Vec<Board>, curindex: usize, maxdepth: Option<u8>) -> 
     let haswon = small_winner(get_slice(db[curindex].brd, db[curindex].scope)) != 0;
     let mut minindex: u8 = 0;
     let mut minrating: Option<f32> = None;
-    let mut allLoop = true;
+    let mut all_loop = true;
     for childnum in 0..db[curindex].children.len() {
 	let child = &db[db[curindex].children[childnum]];
 	let isloop = haswon && (loopstuck(&db, curindex, childnum));
 	let nextwon = small_winner(get_slice(child.brd, child.scope)) != 0;
 	if !(isloop && !nextwon) {
-	    allLoop = false;
+	    all_loop = false;
 	}
     }
     for childnum in 0..db[curindex].children.len() {
@@ -817,7 +698,7 @@ pub fn getcpmove(db: &mut Vec<Board>, curindex: usize, maxdepth: Option<u8>) -> 
 	// print!(", {}", childrating);
 	let isloop = haswon && (loopstuck(&db, curindex, childnum));
 	let nextwon = small_winner(get_slice(child.brd, child.scope)) != 0;
-	if (allLoop || !(isloop && !nextwon)) && (minrating == None || childrating < minrating.unwrap()) {
+	if (all_loop || !(isloop && !nextwon)) && (minrating == None || childrating < minrating.unwrap()) {
 	    minrating = Some(childrating);
 	    minindex = childnum as u8;
 	}

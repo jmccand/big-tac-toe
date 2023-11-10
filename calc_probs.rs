@@ -119,11 +119,13 @@ fn sim_board(boarddb: &mut HashMap<String, (f32, f32)>, ogboard: &mut [[i8; 3]; 
 		// x
 		ogboard[row][col] = 1;
 		tmp = sim_board(boarddb, ogboard);
-		winprobs = (winprobs.0 + tmp.0 / 2.0, winprobs.1 + tmp.1 / 2.0);
+		winprobs = (winprobs.0 + tmp.0, winprobs.1 + tmp.1);
+		// increase nummoves
+		nummoves += 1;
 		// o
 		ogboard[row][col] = -1;
 		tmp = sim_board(boarddb, ogboard);
-		winprobs = (winprobs.0 + tmp.0 / 2.0, winprobs.1 + tmp.1 / 2.0);
+		winprobs = (winprobs.0 + tmp.0, winprobs.1 + tmp.1);
 		// increase nummoves
 		nummoves += 1;
 		// reset ogboard

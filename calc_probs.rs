@@ -99,13 +99,12 @@ fn sim_board(boarddb: &mut HashMap<String, (f32, f32)>, ogboard: &mut [[i8; 3]; 
     if boarddb.contains_key(&board_str) {
 	return *boarddb.get(&board_str).unwrap();
     }
-
     if small_winner(ogboard) == -1 {
 	// O won
 	boarddb.insert(board_str, (0.0, 1.0));
 	return (0.0, 1.0);
     }
-    else if small_winner(ogboard) == -1 {
+    else if small_winner(ogboard) == 1 {
 	// X won
 	boarddb.insert(board_str, (1.0, 0.0));
 	return (1.0, 0.0);

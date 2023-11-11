@@ -147,7 +147,7 @@ pub fn play(starter: Board) {
 	if board.player == 1 {
 	    // println!("Board rating: {}", rate_board(board));
 	    print_board(&board);
-	    println!("Board rating: {}. Computer can see {} moves ahead.", rate_board(board.brd), unsafe{DB.last().unwrap().movenum - DB[CURINDEX].movenum});
+	    println!("Board rating: human: {}, comp: {}. Computer can see {} moves ahead.", rate_board(board.brd).0, rate_board(board.brd).1, unsafe{DB.last().unwrap().movenum - DB[CURINDEX].movenum});
 	    print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
 	    let up = input();
 	    let truep = up.parse::<u8>().unwrap();
@@ -191,7 +191,7 @@ pub fn buildtree() {
 				    prediction: None,
 				};
 				place(&mut newbrd.brd, database[index].player, ((row / 3) * 3 + (col / 3)) as u8, p);
-				newbrd.prediction = Some(rate_board(newbrd.brd));
+				newbrd.prediction = Some(rate_board(newbrd.brd).0 * (1.0 - rate_board(newbrd.brd).1));
 				let dblength = database.len() as usize;
 				database[index].children.push(dblength);
 				database.push(newbrd);
@@ -214,7 +214,7 @@ pub fn buildtree() {
 				    prediction: None,
 				};
 				place(&mut newbrd.brd, database[index].player, database[index].scope, p);
-				newbrd.prediction = Some(rate_board(newbrd.brd));
+				newbrd.prediction = Some(rate_board(newbrd.brd).0 * (1.0 - rate_board(newbrd.brd).1));
 				let dblength = database.len() as usize;
 				database[index].children.push(dblength);
 				database.push(newbrd.clone());
@@ -458,7 +458,7 @@ fn board_to_str(board: & [[i8; 3]; 3]) -> String {
 }
 
 // rate a board by "pseudo-probability"
-fn rate_board(board: [[i8; 9]; 9]) -> f32 {
+fn rate_board(board: [[i8; 9]; 9]) -> (f32, f32) {
     let mut overall_prob: (f32, f32) = (0.0, 0.0);
     let mut scope_probs: [[(f32, f32); 3]; 3] = [[(0.0, 0.0); 3]; 3];
     for scope in 0..9 {
@@ -511,8 +511,7 @@ fn rate_board(board: [[i8; 9]; 9]) -> f32 {
 	// add to overall prob
 	overall_prob = ((1.0 - overall_prob.0) * diag_prob.0, (1.0 - overall_prob.1) * diag_prob.1);
     }
-    println!("human: {} computer: {}", overall_prob.0, overall_prob.1);
-    return overall_prob.0 * (1.0 - overall_prob.1);
+    return overall_prob;
 }
 
 // check if the board is full

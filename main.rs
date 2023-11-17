@@ -147,6 +147,7 @@ pub fn play(starter: Board) {
 	if board.player == 1 {
 	    // println!("Board rating: {}", rate_board(board));
 	    print_board(&board);
+	    print_ratings(board.brd);
 	    println!("Board rating: human: {}, comp: {}. Computer can see {} moves ahead.", rate_board(board.brd).0, rate_board(board.brd).1, unsafe{DB.last().unwrap().movenum - DB[CURINDEX].movenum});
 	    print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
 	    let up = input();
@@ -358,6 +359,80 @@ pub fn print_board(board: &Board) {
     println!();
 }
 
+// print a board's ratings (for debugging)
+fn print_ratings(board: [[i8; 9]; 9]) {
+    // calculate probabilities
+    let mut scope_probs: [[(f32, f32); 3]; 3] = [[(0.0, 0.0); 3]; 3];
+    for scope in 0..9 {
+	let brd_str = board_to_str(&get_slice(board, scope));
+	let swinner = small_winner(get_slice(board, scope));
+	if swinner == -1 {
+	    scope_probs[scope as usize / 3 as usize][scope as usize % 3 as usize] = (0.0, 1.0);
+	}
+	else if swinner == 1 {
+	    scope_probs[scope as usize / 3 as usize][scope as usize % 3 as usize] = (1.0, 0.0);
+	}
+	else {
+	    scope_probs[scope as usize / 3 as usize][scope as usize % 3 as usize] = *PROBS.get(&brd_str).unwrap();
+	}
+    }
+    println!();
+    for row in 0..3 {
+	if row != 0 {
+	    println!("{}", "-".repeat(23));
+	}
+	println!("       |       |       ");
+	for col in 0..3 {
+	    print!(" ");
+	    let val = scope_probs[row][col].0;
+	    print!("{:.3}", val);
+	    print!(" |");
+	}
+	println!();
+	for col in 0..3 {
+	    print!(" ");
+	    let val = scope_probs[row][col].1;
+	    print!("{:.3}", val);
+	    print!(" |");
+	}
+	println!();
+    }
+    println!();
+    // rate big board
+    // rows
+    for row in 0..3 {
+	let mut row_prob: (f32, f32) = (1.0, 1.0);
+	for col in 0..3 {
+	    row_prob = (row_prob.0 * scope_probs[row][col].0, row_prob.1 * scope_probs[row][col].1);
+	}
+	println!("row {}: h: {:.3}  c: {:.3}", row, row_prob.0, row_prob.1);
+    }
+    // cols
+    for col in 0..3 {
+	let mut col_prob: (f32, f32) = (1.0, 1.0);
+	for row in 0..3 {
+	    col_prob = (col_prob.0 * scope_probs[row][col].0, col_prob.1 * scope_probs[row][col].1);
+	}
+	println!("col {}: h: {:.3}  c: {:.3}", col, col_prob.0, col_prob.1);
+    }
+    // diagonal 1
+    {
+	let mut diag_prob: (f32, f32) = (1.0, 1.0);
+	for diag in 0..3 {
+	    diag_prob = (diag_prob.0 * scope_probs[diag][diag].0, diag_prob.1 * scope_probs[diag][diag].1);
+	}
+	println!("diag 1: h: {:.3}  c: {:.3}", diag_prob.0, diag_prob.1);
+    }
+    // diagonal 2
+    {
+	let mut diag_prob: (f32, f32) = (1.0, 1.0);
+	for diag in 0..3 {
+	    diag_prob = (diag_prob.0 * scope_probs[2 - diag][diag].0, diag_prob.1 * scope_probs[2 - diag][diag].1);
+	}
+	println!("diag 2: h: {:.3}  c: {:.3}", diag_prob.0, diag_prob.1);
+    }
+}
+
 // check if there is a full board winner
 fn winner(board: [[i8; 9]; 9]) -> i8 {
     let mut winners: [[i8; 3]; 3] = [[0; 3]; 3];
@@ -482,7 +557,7 @@ fn rate_board(board: [[i8; 9]; 9]) -> (f32, f32) {
 	    row_prob = (row_prob.0 * scope_probs[row][col].0, row_prob.1 * scope_probs[row][col].1);
 	}
 	// add to overall prob
-	overall_prob = ((1.0 - overall_prob.0) * row_prob.0, (1.0 - overall_prob.1) * row_prob.1);
+	overall_prob = (overall_prob.0 + (1.0 - overall_prob.0) * row_prob.0, overall_prob.1 + (1.0 - overall_prob.1) * row_prob.1);
     }
     // cols
     for col in 0..3 {
@@ -491,7 +566,7 @@ fn rate_board(board: [[i8; 9]; 9]) -> (f32, f32) {
 	    col_prob = (col_prob.0 * scope_probs[row][col].0, col_prob.1 * scope_probs[row][col].1);
 	}
 	// add to overall prob
-	overall_prob = ((1.0 - overall_prob.0) * col_prob.0, (1.0 - overall_prob.1) * col_prob.1);
+	overall_prob = (overall_prob.0 + (1.0 - overall_prob.0) * col_prob.0, overall_prob.1 + (1.0 - overall_prob.1) * col_prob.1);
     }
     // diagonal 1
     {
@@ -500,16 +575,16 @@ fn rate_board(board: [[i8; 9]; 9]) -> (f32, f32) {
 	    diag_prob = (diag_prob.0 * scope_probs[diag][diag].0, diag_prob.1 * scope_probs[diag][diag].1);
 	}
 	// add to overall prob
-	overall_prob = ((1.0 - overall_prob.0) * diag_prob.0, (1.0 - overall_prob.1) * diag_prob.1);
+	overall_prob = (overall_prob.0 + (1.0 - overall_prob.0) * diag_prob.0, overall_prob.1 + (1.0 - overall_prob.1) * diag_prob.1);
     }
     // diagonal 2
     {
 	let mut diag_prob: (f32, f32) = (1.0, 1.0);
 	for diag in 0..3 {
-	    diag_prob = (diag_prob.0 * scope_probs[diag][diag].0, diag_prob.1 * scope_probs[diag][diag].1);
+	    diag_prob = (diag_prob.0 * scope_probs[2 - diag][diag].0, diag_prob.1 * scope_probs[2 - diag][diag].1);
 	}
 	// add to overall prob
-	overall_prob = ((1.0 - overall_prob.0) * diag_prob.0, (1.0 - overall_prob.1) * diag_prob.1);
+	overall_prob = (overall_prob.0 + (1.0 - overall_prob.0) * diag_prob.0, overall_prob.1 + (1.0 - overall_prob.1) * diag_prob.1);
     }
     return overall_prob;
 }

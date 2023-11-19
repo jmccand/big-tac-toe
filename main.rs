@@ -293,6 +293,12 @@ fn get_slice(board: [[i8; 9]; 9], scope: u8) -> [[i8; 3]; 3] {
 
 // print a board so the player can see or for debug
 pub fn print_board(board: &Board) {
+    // calculate the last move
+    let mut last_move = (9, 9);
+    if board.parent.is_some() {
+	let pscope = unsafe{DB[board.parent.unwrap()].scope};
+	last_move = ((pscope / 3) * 3 + (board.scope / 3), (pscope % 3) * 3 + (board.scope % 3));
+    }
     // see if you can go anywhere this turn
     let go_anywhere = is_full(get_slice(board.brd, board.scope));
     println!();
@@ -312,13 +318,15 @@ pub fn print_board(board: &Board) {
 	    let value = board.brd[row][col];
 	    // smart print for color
 	    let smart_print = |s: String| {
-		if go_anywhere || scope == board.scope {
-		    if board.brd[row][col] == 0 {
+		if (go_anywhere || scope == board.scope) && board.brd[row][col] == 0 {
 			print!("{}", s.green());
-			return;
-		    }
 		}
-		print!("{}", s);
+		else if row == last_move.0 as usize && col == last_move.1 as usize {
+		    print!("{}", s.red());
+		}
+		else {
+		    print!("{}", s);
+		}
 	    };
 	    if b_winner == 0 {
 		if value == 1 || value == 2 {

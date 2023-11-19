@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::thread;
 use serde_json;
 extern crate lazy_static;
+use colored::Colorize;
 
 // store a board node in the tree
 #[derive(Clone, Debug)]
@@ -292,63 +293,83 @@ fn get_slice(board: [[i8; 9]; 9], scope: u8) -> [[i8; 3]; 3] {
 
 // print a board so the player can see or for debug
 pub fn print_board(board: &Board) {
+    // see if you can go anywhere this turn
+    let go_anywhere = is_full(get_slice(board.brd, board.scope));
     println!();
     for row in 0..9 {
+	// horizontal dividers
 	if row % 3 == 0 && row != 0 {
 	    println!("{}", "-".repeat(23));
 	}
 	for col in 0..9 {
+	    // vertical dividers
 	    if col % 3 == 0 && col != 0 {
 		print!(" |")
 	    }
+	    // get scope winner
 	    let scope: u8 = ((row / 3) as u8) * 3 + (col / 3) as u8;
 	    let b_winner = small_winner(get_slice(board.brd, scope));
 	    let value = board.brd[row][col];
+	    // smart print for color
+	    let smart_print = |s: String| {
+		if go_anywhere || scope == board.scope {
+		    if board.brd[row][col] == 0 {
+			print!("{}", s.green());
+			return;
+		    }
+		}
+		print!("{}", s);
+	    };
 	    if b_winner == 0 {
 		if value == 1 || value == 2 {
-		    print!(" X");
+		    smart_print(" X".to_string());
 		}
 		else if value == -1 || value == -2 {
-		    print!(" O");
+		    smart_print(" O".to_string());
 		}
 		else {
-		    print!(" _");
+		   smart_print (" _".to_string());
 		}
 	    }
 	    else {
 		if row > 0 && col > 0 && (row - 1) % 3 == 0 && (col - 1) % 3 == 0 {
+		    // print filled board with central winner
 		    if board.brd[row][col] == 0 {
-			print!(" _");
+			smart_print(" _".to_string());
 		    }
 		    else {
+			// print the winner in the center
 			if b_winner == 1 {
-			    print!(" X");
+			    smart_print(" X".to_string());
 			}
 			else {
-			    print!(" O");
+			    smart_print(" O".to_string());
 			}
 		    }
 		}
 		else {
 		    if board.brd[(((row / 3) as u8) * 3 + 1) as usize][(((col / 3) as u8) * 3 + 1) as usize] == 0 {
 			if value == 0 {
-			    print!(" _");
+			    smart_print(" _".to_string());
 			}
 			else {
-			    if value == 1 {
-				print!(" X");
+			    // board conquered and middle not occupied
+			    // print the winner so it's not ambiguous
+			    if b_winner == 1 {
+				smart_print(" X".to_string());
 			    }
 			    else {
-				print!(" O");
+				smart_print(" O".to_string());
 			    }
 			}
 		    }
 		    else {
+			// board conquered and middle occupied
 			if value == 0 {
-			    print!(" _");
+			    smart_print(" _".to_string());
 			}
 			else {
-			    print!(" *");
+			    smart_print(" *".to_string());
 			}
 		    }
 		}

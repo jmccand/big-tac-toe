@@ -27,7 +27,7 @@ pub static mut DB: Vec<Board> = Vec::new();
 pub static mut CURINDEX: usize = 0;
 
 lazy_static::lazy_static! {
-    static ref PROBS: HashMap<String, (f32, f32)> = {
+    pub static ref PROBS: HashMap<String, (f32, f32)> = {
 	// initialize probability hashmap
 	let args: Vec<String> = env::args().collect();
 	let mut json = String::new();
@@ -148,7 +148,6 @@ pub fn play(starter: Board) {
 	if board.player == 1 {
 	    // println!("Board rating: {}", rate_board(board));
 	    print_board(&board);
-	    print_ratings(board.brd);
 	    println!("Board rating: human: {}, comp: {}. Computer can see {} moves ahead.", rate_board(board.brd).0, rate_board(board.brd).1, unsafe{DB.last().unwrap().movenum - DB[CURINDEX].movenum});
 	    print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
 	    let up = input();
@@ -281,7 +280,7 @@ fn get(board: [[i8; 9]; 9], scope: u8, p: u8) -> i8 {
 }
 
 // get a 3x3 sub-board of the 9x9 full board ("slice")
-fn get_slice(board: [[i8; 9]; 9], scope: u8) -> [[i8; 3]; 3] {
+pub fn get_slice(board: [[i8; 9]; 9], scope: u8) -> [[i8; 3]; 3] {
     let mut slice = [[0; 3]; 3];
     for row in 0..3 {
 	for col in 0..3 {
@@ -388,80 +387,6 @@ pub fn print_board(board: &Board) {
     println!();
 }
 
-// print a board's ratings (for debugging)
-fn print_ratings(board: [[i8; 9]; 9]) {
-    // calculate probabilities
-    let mut scope_probs: [[(f32, f32); 3]; 3] = [[(0.0, 0.0); 3]; 3];
-    for scope in 0..9 {
-	let brd_str = board_to_str(&get_slice(board, scope));
-	let swinner = small_winner(get_slice(board, scope));
-	if swinner == -1 {
-	    scope_probs[scope as usize / 3 as usize][scope as usize % 3 as usize] = (0.0, 1.0);
-	}
-	else if swinner == 1 {
-	    scope_probs[scope as usize / 3 as usize][scope as usize % 3 as usize] = (1.0, 0.0);
-	}
-	else {
-	    scope_probs[scope as usize / 3 as usize][scope as usize % 3 as usize] = *PROBS.get(&brd_str).unwrap();
-	}
-    }
-    println!();
-    for row in 0..3 {
-	if row != 0 {
-	    println!("{}", "-".repeat(23));
-	}
-	println!("       |       |       ");
-	for col in 0..3 {
-	    print!(" ");
-	    let val = scope_probs[row][col].0;
-	    print!("{:.3}", val);
-	    print!(" |");
-	}
-	println!();
-	for col in 0..3 {
-	    print!(" ");
-	    let val = scope_probs[row][col].1;
-	    print!("{:.3}", val);
-	    print!(" |");
-	}
-	println!();
-    }
-    println!();
-    // rate big board
-    // rows
-    for row in 0..3 {
-	let mut row_prob: (f32, f32) = (1.0, 1.0);
-	for col in 0..3 {
-	    row_prob = (row_prob.0 * scope_probs[row][col].0, row_prob.1 * scope_probs[row][col].1);
-	}
-	println!("row {}: h: {:.3}  c: {:.3}", row, row_prob.0, row_prob.1);
-    }
-    // cols
-    for col in 0..3 {
-	let mut col_prob: (f32, f32) = (1.0, 1.0);
-	for row in 0..3 {
-	    col_prob = (col_prob.0 * scope_probs[row][col].0, col_prob.1 * scope_probs[row][col].1);
-	}
-	println!("col {}: h: {:.3}  c: {:.3}", col, col_prob.0, col_prob.1);
-    }
-    // diagonal 1
-    {
-	let mut diag_prob: (f32, f32) = (1.0, 1.0);
-	for diag in 0..3 {
-	    diag_prob = (diag_prob.0 * scope_probs[diag][diag].0, diag_prob.1 * scope_probs[diag][diag].1);
-	}
-	println!("diag 1: h: {:.3}  c: {:.3}", diag_prob.0, diag_prob.1);
-    }
-    // diagonal 2
-    {
-	let mut diag_prob: (f32, f32) = (1.0, 1.0);
-	for diag in 0..3 {
-	    diag_prob = (diag_prob.0 * scope_probs[2 - diag][diag].0, diag_prob.1 * scope_probs[2 - diag][diag].1);
-	}
-	println!("diag 2: h: {:.3}  c: {:.3}", diag_prob.0, diag_prob.1);
-    }
-}
-
 // check if there is a full board winner
 fn winner(board: [[i8; 9]; 9]) -> i8 {
     let mut winners: [[i8; 3]; 3] = [[0; 3]; 3];
@@ -475,7 +400,7 @@ fn winner(board: [[i8; 9]; 9]) -> i8 {
 }
 
 // check if there is a 3x3 board winner
-fn small_winner(board: [[i8; 3]; 3]) -> i8 {
+pub fn small_winner(board: [[i8; 3]; 3]) -> i8 {
     // check rows
     for row in 0..3 {
 	let mut counts = [0; 2];
@@ -553,7 +478,7 @@ fn small_winner(board: [[i8; 3]; 3]) -> i8 {
 }
 
 // convert a board to a str representation for easy json storing
-fn board_to_str(board: & [[i8; 3]; 3]) -> String {
+pub fn board_to_str(board: & [[i8; 3]; 3]) -> String {
     // add 1 to avoid negatives
     return format!("{}{}{}{}{}{}{}{}{}",
 		   board[0][0]+1, board[0][1]+1, board[0][2]+1,
@@ -562,7 +487,7 @@ fn board_to_str(board: & [[i8; 3]; 3]) -> String {
 }
 
 // rate a board by "pseudo-probability"
-fn rate_board(board: [[i8; 9]; 9]) -> (f32, f32) {
+pub fn rate_board(board: [[i8; 9]; 9]) -> (f32, f32) {
     let mut overall_prob: (f32, f32) = (0.0, 0.0);
     let mut scope_probs: [[(f32, f32); 3]; 3] = [[(0.0, 0.0); 3]; 3];
     for scope in 0..9 {

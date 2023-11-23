@@ -133,7 +133,6 @@ fn main() {
 	prediction: None,
     };
     if args.len() > 2 {
-	println!("3 args!");
 	starter.brd = [[1, -1, 1, 2, -1, 1, -1, 2, -2, ],
 		       [0, 0, -2, 1, 1, 1, -1, 2, 2, ],
 		       [-1, -1, -1, 2, 2, 2, -1, -2, 2, ],
@@ -581,22 +580,17 @@ fn is_full(board: [[i8; 3]; 3]) -> bool {
 // try all of the possibilities for this move
 fn domove(board: &Board, go_scope: u8, pindex: u8) -> usize {
     if board.player == 1 {
-	println!("scope: {}, pindex: {}", go_scope, pindex);
-	println!("{:?}", get_slice(board.brd, board.scope));
 	if is_full(get_slice(board.brd, board.scope)) {
 	    let mut veccount: usize = 0;
-	    let my_row = (go_scope / 3) * 3 + (pindex / 3);
-	    let my_col = (go_scope % 3) * 3 + (pindex % 3);
+	    let my_row = (go_scope / 3) as usize * 3 + (pindex / 3) as usize;
+	    let my_col = (go_scope % 3) as usize * 3 + (pindex % 3) as usize;
 	    let large_p = my_row * 9 + my_col;
-	    println!("scope: {}, pindex: {}, myrow: {}, mycol: {}", go_scope, pindex, my_row, my_col);
 	    for row in 0..9 {
 		for col in 0..9 {
 		    if row * 9 + col < large_p {
-			let this_scope = (my_row / 3) + (my_col / 3);
-			let this_p = (my_row % 3) * 3 + (my_col % 3);
-			println!("r: {} c: {} this scope: {}, this p: {}", row, col, this_scope, this_p);
-			if get(board.brd, this_scope, this_p as u8) == 0 {
-			    println!("s: {} r: {} c: {}", this_scope, row, col);
+			let this_scope = (row / 3) * 3 + (col / 3);
+			let this_p = (row % 3) * 3 + (col % 3);
+			if get(board.brd, this_scope as u8, this_p as u8) == 0 {
 			    veccount += 1;
 			}
 		    }

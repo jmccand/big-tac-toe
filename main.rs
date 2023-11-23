@@ -122,7 +122,8 @@ fn write_board(board: [[i8; 9]; 9], outfile: &mut File) {
 
 fn main() {
     println!("Welcome to AI Big Tac Toe!");
-    let starter = Board {
+    let args: Vec<String> = env::args().collect();
+    let mut starter = Board {
 	brd: [[0; 9]; 9],
 	scope: 1,
 	player: 1,
@@ -131,6 +132,22 @@ fn main() {
 	parent: None,
 	prediction: None,
     };
+    if args.len() > 2 {
+	println!("3 args!");
+	starter.brd = [[1, -1, 1, 2, -1, 1, -1, 2, -2, ],
+		       [0, 0, -2, 1, 1, 1, -1, 2, 2, ],
+		       [-1, -1, -1, 2, 2, 2, -1, -2, 2, ],
+		       [0, -1, -1, 0, -1, 1, 1, -2, -1, ],
+		       [1, 0, -1, 0, 0, 0, 1, 0, -1, ],
+		       [-1, 0, 0, 0, 0, -1, 1, -2, 1, ],
+		       [1, -1, 1, 1, -2, 1, -1, -1, -1, ],
+		       [0, -1, 2, 0, 0, 1, 1, 0, -2, ],
+		       [1, -1, -1, -1, 2, 1, 2, -2, 2, ],
+	];
+	starter.scope = 1;
+	starter.player = 1;
+    }
+    
     play(starter);
 }
 
@@ -149,16 +166,22 @@ pub fn play(starter: Board) {
 	    // println!("Board rating: {}", rate_board(board));
 	    print_board(&board);
 	    println!("Board rating: human: {}, comp: {}. Computer can see {} moves ahead.", rate_board(board.brd).0, rate_board(board.brd).1, unsafe{DB.last().unwrap().movenum - DB[CURINDEX].movenum});
-	    print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", board.scope);
+	    let mut go_scope = board.scope;
+	    if is_full(get_slice(board.brd, board.scope)) {
+		print!("Your board is full. Please enter a number, 0-8 (inclusive) for which board you want to play on: ");
+		let up = input();
+		go_scope = up.parse::<u8>().unwrap();
+	    }
+	    print!("You are on board number {}. Please enter a number, 0-8 (inclusive) for where you want to place your X: ", go_scope);
 	    let up = input();
 	    let truep = up.parse::<u8>().unwrap();
 	    let board = unsafe{&DB[CURINDEX].clone()};
-	    if truep < 9 && get(board.brd, board.scope, truep) == 0 {
-		unsafe{CURINDEX = domove(board, truep);}
+	    if truep < 9 && get(board.brd, go_scope, truep) == 0 {
+		unsafe{CURINDEX = domove(board, go_scope, truep);}
 	    }
 	}
 	else {
-	    unsafe{CURINDEX = domove(board, getcpmove(&mut DB, CURINDEX, Some(DB.last().unwrap().movenum - 1)));}
+	    unsafe{CURINDEX = domove(board, board.scope, getcpmove(&mut DB, CURINDEX, Some(DB.last().unwrap().movenum - 1)));}
 	}
     }
     print_board(unsafe{&DB[CURINDEX]});
@@ -556,19 +579,44 @@ fn is_full(board: [[i8; 3]; 3]) -> bool {
 }
 
 // try all of the possibilities for this move
-fn domove(board: &Board, pindex: u8) -> usize {
+fn domove(board: &Board, go_scope: u8, pindex: u8) -> usize {
     if board.player == 1 {
-	let mut veccount: usize = 0;
-	for row in 0..3 {
-	    for col in 0..3 {
-		if row * 3 + col < pindex {
-		    if get(board.brd, board.scope, (row * 3 + col) as u8) == 0 {
-			veccount += 1;
+	println!("scope: {}, pindex: {}", go_scope, pindex);
+	println!("{:?}", get_slice(board.brd, board.scope));
+	if is_full(get_slice(board.brd, board.scope)) {
+	    let mut veccount: usize = 0;
+	    let my_row = (go_scope / 3) * 3 + (pindex / 3);
+	    let my_col = (go_scope % 3) * 3 + (pindex % 3);
+	    let large_p = my_row * 9 + my_col;
+	    println!("scope: {}, pindex: {}, myrow: {}, mycol: {}", go_scope, pindex, my_row, my_col);
+	    for row in 0..9 {
+		for col in 0..9 {
+		    if row * 9 + col < large_p {
+			let this_scope = (my_row / 3) + (my_col / 3);
+			let this_p = (my_row % 3) * 3 + (my_col % 3);
+			println!("r: {} c: {} this scope: {}, this p: {}", row, col, this_scope, this_p);
+			if get(board.brd, this_scope, this_p as u8) == 0 {
+			    println!("s: {} r: {} c: {}", this_scope, row, col);
+			    veccount += 1;
+			}
 		    }
 		}
 	    }
+	    return board.children[veccount];
 	}
-	return board.children[veccount];
+	else {
+	    let mut veccount: usize = 0;
+	    for row in 0..3 {
+		for col in 0..3 {
+		    if row * 3 + col < pindex {
+			if get(board.brd, board.scope, (row * 3 + col) as u8) == 0 {
+			    veccount += 1;
+			}
+		    }
+		}
+	    }
+	    return board.children[veccount];
+	}
     }
     else {
 	return board.children[pindex as usize];
